@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  # ClusterIP para IP interno, acessível apenas de dentro do cluster.
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432 # A porta do service em si
+      targetPort: 5432 # A porta do container do PostgreSQL

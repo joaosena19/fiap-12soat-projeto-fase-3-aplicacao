@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+spec:
+  replicas: 1 # 1 replica pois é um banco de dados (stateful) sem configuração para múltiplas instâncias
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432 # Porta padrão do PostgreSQL
+        resources: 
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "300m"
+            memory: "384Mi"
+        env:
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                name: oficina-mecanica-config
+                key: DatabaseConnection__DatabaseName
+          - name: POSTGRES_USER
+            valueFrom:
+              configMapKeyRef:
+                name: oficina-mecanica-config
+                key: DatabaseConnection__User
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: oficina-mecanica-secret 
+                key: DatabaseConnection__Password
+        volumeMounts:
+          - name: postgres-storage
+            mountPath: /var/lib/postgresql/data
+        # Health Probes para monitoramento da saúde do PostgreSQL
+        # Todas as Probes usam o comando pg_isready, mas o tempos e failureThreshold variam, o que muda o uso de cada Probe.
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12
+      volumes:
+        - name: postgres-storage 
+          emptyDir: {} # Usar emptyDir para não gastar recursos da AWS

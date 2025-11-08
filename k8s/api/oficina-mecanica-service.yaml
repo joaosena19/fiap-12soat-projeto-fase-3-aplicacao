@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: oficina-mecanica-service
+  namespace: default
+spec:
+  # LoadBalancer em cima do Pod (definido via deployment)
+  type: LoadBalancer
+  selector:
+    app: oficina-mecanica-pod
+  ports:
+  - name: oficina-mecanica-service
+    protocol: TCP
+    port: 80 # Porta interna do Service
+    targetPort: 8080 # Porta onde o Pod está escutando
