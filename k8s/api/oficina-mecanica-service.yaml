@@ -4,8 +4,8 @@ metadata:
   name: oficina-mecanica-service
   namespace: default
 spec:
-  # LoadBalancer em cima do Pod (definido via deployment)
-  type: LoadBalancer
+  # NodePort para integração com NLB via API Gateway
+  type: NodePort
   selector:
     app: oficina-mecanica-pod
   ports:
@@ -13,3 +13,4 @@ spec:
     protocol: TCP
     port: 80 # Porta interna do Service
     targetPort: 8080 # Porta onde o Pod está escutando
+    nodePort: 30080 # Porta exposta nos nodes do EKS (usada pelo NLB)
