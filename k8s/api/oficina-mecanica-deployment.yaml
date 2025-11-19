@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: container-oficina-mecanica-api
-        image: joaodainese/fiap-12-soat-projeto-fase2:latest # Imagem do Docker Hub
+        image: joaodainese/fiap-12soat-projeto-fase3:latest # Imagem do Docker Hub
         ports:
         - containerPort: 8080 # Port exposta no Dockerfile
           name: http
