@@ -106,6 +106,58 @@ jobs:
           echo "Listando clusters EKS..."
           aws eks list-clusters --region ${{ env.AWS_REGION }}
 
+      - name: Configurar Terraform (para buscar dados Aurora)
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Criar diretório temporário para Terraform
+        run: mkdir terraform-temp
+
+      - name: Buscar dados do Aurora via Terraform
+        working-directory: ./terraform-temp
+        run: |
+          # Criar arquivo terraform temporário para buscar outputs do Aurora
+          cat > aurora-data.tf << 'EOF'
+          terraform {
+            backend "s3" {
+              bucket = "${{ secrets.TF_VAR_BUCKET_NAME }}"
+              key    = "database-aurora/terraform.tfstate"
+              region = "${{ env.AWS_REGION }}"
+            }
+          }
+          
+          data "terraform_remote_state" "aurora" {
+            backend = "s3"
+            config = {
+              bucket = "${{ secrets.TF_VAR_BUCKET_NAME }}"
+              key    = "database-aurora/terraform.tfstate"
+              region = "${{ env.AWS_REGION }}"
+            }
+          }
+          
+          output "db_host" {
+            value = data.terraform_remote_state.aurora.outputs.aurora_cluster_endpoint
+          }
+          
+          output "db_name" {
+            value = data.terraform_remote_state.aurora.outputs.aurora_database_name
+          }
+          
+          output "db_username" {
+            value = data.terraform_remote_state.aurora.outputs.aurora_master_username
+          }
+          EOF
+          
+          # Buscar dados do Aurora
+          terraform init
+          terraform apply -auto-approve
+          
+          # Exportar como environment variables para próximos steps
+          echo "DB_HOST_VALUE=$(terraform output -raw db_host)" >> $GITHUB_ENV
+          echo "DB_NAME_VALUE=$(terraform output -raw db_name)" >> $GITHUB_ENV
+          echo "DB_USERNAME_VALUE=$(terraform output -raw db_username)" >> $GITHUB_ENV
+
       - name: Configurar acesso ao cluster EKS
         run: |
           echo "Configurando kubeconfig para o cluster: ${{ secrets.TF_VAR_EKS_CLUSTER_NAME }}"
@@ -126,12 +178,12 @@ jobs:
 
       - name: Atualizar ConfigMap do Kubernetes
         run: |
-          # Atualizar oficina-mecanica-config com valores corretos
+          # Atualizar oficina-mecanica-config com dados AUTOMÁTICOS do Aurora
           kubectl create configmap oficina-mecanica-config \
-            --from-literal=DatabaseConnection__Host=${{ secrets.DB_HOST }} \
+            --from-literal=DatabaseConnection__Host="$DB_HOST_VALUE" \
             --from-literal=DatabaseConnection__Port=5432 \
-            --from-literal=DatabaseConnection__DatabaseName=${{ secrets.DB_NAME }} \
-            --from-literal=DatabaseConnection__User=${{ secrets.DB_MASTER_USERNAME }} \
+            --from-literal=DatabaseConnection__DatabaseName="$DB_NAME_VALUE" \
+            --from-literal=DatabaseConnection__User="$DB_USERNAME_VALUE" \
             --from-literal=ASPNETCORE_ENVIRONMENT=Production \
             --from-literal=ASPNETCORE_URLS=http://+:8080 \
             --from-literal=Jwt__Issuer=${{ secrets.JWT_ISSUER }} \

@@ -3,10 +3,10 @@ kind: ConfigMap
 metadata:
   name: oficina-mecanica-config
 data: # Dados não sensíveis
-  DatabaseConnection__Host: "postgres-service"
+  DatabaseConnection__Host: "__DB_HOST__"
   DatabaseConnection__Port: "5432"
-  DatabaseConnection__DatabaseName: "oficina_mecanica_db"
-  DatabaseConnection__User: "oficina_user"
+  DatabaseConnection__DatabaseName: "__DB_NAME__"
+  DatabaseConnection__User: "__DB_MASTER_USERNAME__"
   
   ASPNETCORE_ENVIRONMENT: "Development"
   ASPNETCORE_URLS: "http://+:8080"
