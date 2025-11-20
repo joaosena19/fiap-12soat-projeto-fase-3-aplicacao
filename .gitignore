@@ -52,3 +52,15 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Adicionados manualmente
+.vs
+*.csproj.user
+CoverageReport/
+
+# Visual Studio temporary files
+.vs/
+**/FileContentIndex/
+**/DesignTimeBuild/
+**/.vs/
+
