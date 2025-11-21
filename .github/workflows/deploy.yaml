@@ -124,7 +124,6 @@ jobs:
           export DB_HOST_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.postgres_instance_endpoint.value')
           export DB_NAME_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.postgres_database_name.value') 
           export DB_USERNAME_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.postgres_master_username.value')
-          export DB_PASSWORD_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.postgres_master_password.value')
           
           # Validar se os valores foram obtidos
           if [ "$DB_HOST_VALUE" = "null" ] || [ -z "$DB_HOST_VALUE" ]; then
@@ -132,22 +131,16 @@ jobs:
             exit 1
           fi
           
-          if [ "$DB_PASSWORD_VALUE" = "null" ] || [ -z "$DB_PASSWORD_VALUE" ]; then
-            echo "❌ Erro: Não foi possível obter DB_PASSWORD_VALUE do state"
-            exit 1
-          fi
-          
           echo "✅ Dados do PostgreSQL obtidos com sucesso:"
           echo "Host: $DB_HOST_VALUE"
           echo "Database: $DB_NAME_VALUE" 
           echo "User: $DB_USERNAME_VALUE"
-          echo "Password: [REDACTED]"
+          echo "Password: [Será obtida do GitHub Secret]"
           
           # Exportar para próximos steps
           echo "DB_HOST_VALUE=$DB_HOST_VALUE" >> $GITHUB_ENV
           echo "DB_NAME_VALUE=$DB_NAME_VALUE" >> $GITHUB_ENV
           echo "DB_USERNAME_VALUE=$DB_USERNAME_VALUE" >> $GITHUB_ENV
-          echo "DB_PASSWORD_VALUE=$DB_PASSWORD_VALUE" >> $GITHUB_ENV
 
       - name: Configurar acesso ao cluster EKS
         run: |
@@ -159,9 +152,9 @@ jobs:
 
       - name: Atualizar secrets do Kubernetes
         run: |
-          # Atualizar oficina-mecanica-secret com valores das secrets E password do PostgreSQL
+          # Atualizar oficina-mecanica-secret com valores das secrets
           kubectl create secret generic oficina-mecanica-secret \
-            --from-literal=DatabaseConnection__Password="$DB_PASSWORD_VALUE" \
+            --from-literal=DatabaseConnection__Password=${{ secrets.DB_MASTER_PASSWORD }} \
             --from-literal=Jwt__Key=${{ secrets.JWT_KEY }} \
             --from-literal=ApiCredentials__ClientSecret=${{ secrets.API_CLIENT_SECRET }} \
             --from-literal=Webhook__HmacSecret=${{ secrets.WEBHOOK_HMAC_SECRET }} \
