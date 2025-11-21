@@ -72,8 +72,8 @@ jobs:
           file: ./src/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/fiap-12soat-fase3:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/fiap-12soat-fase3:${{ steps.version.outputs.VERSION }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/fiap-12soat-projeto-fase3:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/fiap-12soat-projeto-fase3:${{ steps.version.outputs.VERSION }}
 
   deploy-to-kubernetes:
     name: 3. Deploy no Kubernetes (EKS)
@@ -176,7 +176,7 @@ jobs:
 
       - name: Atualizar tag da imagem no manifesto k8s
         run: |
-          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/fiap-12soat-fase3:${{ needs.publish-docker-image.outputs.version_tag }}|g" k8s/api/oficina-mecanica-deployment.yaml
+          sed -i "s|image:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/fiap-12soat-projeto-fase3:${{ needs.publish-docker-image.outputs.version_tag }}|g" k8s/api/oficina-mecanica-deployment.yaml
 
       - name: Aplicar metrics server
         run: kubectl apply -f k8s/metrics-server.yaml
