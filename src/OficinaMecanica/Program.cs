@@ -22,8 +22,8 @@ app.UseHealthCheckEndpoints();
 app.MapControllers();
 
 
-// Popula dados mock se estiver em ambiente de desenvolvimento
-DevelopmentDataSeeder.SeedIfDevelopment(app);
+// Popula dados mock
+DevelopmentDataSeeder.Seed(app);
 
 await app.RunAsync();
 
