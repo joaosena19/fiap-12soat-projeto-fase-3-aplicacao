@@ -14,6 +14,15 @@ namespace API.Configurations
             if (!app.Environment.IsDevelopment() || IsIntegrationTest())
                 return;
 
+            Seed(app);
+        }
+
+        /// <summary>
+        /// Popula o banco de dados com dados mock
+        /// </summary>
+        /// <param name="app">A aplicação web</param>
+        public static void Seed(WebApplication app)
+        {
             try
             {
                 using var scope = app.Services.CreateScope();
@@ -21,7 +30,7 @@ namespace API.Configurations
 
                 // Garante que o banco está criado e as migrations aplicadas
                 dbContext.Database.Migrate();
-                
+
                 SeedData.SeedAll(dbContext);
             }
             catch (Exception ex)
