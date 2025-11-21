@@ -11,20 +11,23 @@ namespace API.Configurations
         /// <param name="app">A aplicação web</param>
         public static void SeedIfDevelopment(WebApplication app)
         {
-            if (!app.Environment.IsDevelopment() || IsIntegrationTest())
+            if (!app.Environment.IsDevelopment())
                 return;
 
             Seed(app);
         }
 
         /// <summary>
-        /// Popula o banco de dados com dados mock
+        /// Popula o banco de dados com dados mock e não executando testes de integração
         /// </summary>
         /// <param name="app">A aplicação web</param>
         public static void Seed(WebApplication app)
         {
             try
             {
+                if (IsIntegrationTest())
+                    return;
+
                 using var scope = app.Services.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
