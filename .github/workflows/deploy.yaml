@@ -2,11 +2,6 @@ name: Deploy Aplicação no EKS
 
 on:
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: "Digite 'DEPLOY' para confirmar"
-        type: string
-        required: true
 
 env:
   AWS_REGION: us-east-1
@@ -14,7 +9,6 @@ env:
 jobs:
   build-and-test:
     name: 1. Build e Teste
-    if: ${{ inputs.confirm == 'DEPLOY' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
@@ -53,7 +47,6 @@ jobs:
   publish-docker-image:
     name: 2. Publicar Imagem Docker
     runs-on: ubuntu-latest
-    if: ${{ inputs.confirm == 'DEPLOY' }}
     needs: build-and-test # Executa após o build e testes
     outputs:
       version_tag: ${{ steps.version.outputs.VERSION }}
@@ -87,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: publish-docker-image # Depende da imagem Docker publicada
     # Executa apenas se o job anterior foi bem-sucedido
-    if: ${{ inputs.confirm == 'DEPLOY' && needs.publish-docker-image.result == 'success' }}
+    if: ${{ needs.publish-docker-image.result == 'success' }}
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -106,57 +99,47 @@ jobs:
           echo "Listando clusters EKS..."
           aws eks list-clusters --region ${{ env.AWS_REGION }}
 
-      - name: Configurar Terraform (para buscar dados Aurora)
+      - name: Instalar dependências
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Configurar Terraform (para buscar dados PostgreSQL)
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.0
+          terraform_wrapper: false
 
-      - name: Criar diretório temporário para Terraform
-        run: mkdir terraform-temp
-
-      - name: Buscar dados do Aurora via Terraform
-        working-directory: ./terraform-temp
+      - name: Buscar dados do PostgreSQL via Terraform
         run: |
-          # Criar arquivo terraform temporário para buscar outputs do PostgreSQL
-          cat > postgres-data.tf << 'EOF'
-          terraform {
-            backend "s3" {
-              bucket = "${{ secrets.TF_VAR_BUCKET_NAME }}"
-              key    = "database-postgres/terraform.tfstate"
-              region = "${{ env.AWS_REGION }}"
-            }
-          }
+          # Buscar dados do PostgreSQL diretamente do S3 backend (read-only)
           
-          data "terraform_remote_state" "postgres" {
-            backend = "s3"
-            config = {
-              bucket = "${{ secrets.TF_VAR_BUCKET_NAME }}"
-              key    = "database-postgres/terraform.tfstate"
-              region = "${{ env.AWS_REGION }}"
-            }
-          }
+          # Configurar AWS CLI para acessar o state
+          export AWS_REGION="${{ env.AWS_REGION }}"
           
-          output "db_host" {
-            value = data.terraform_remote_state.postgres.outputs.postgres_instance_endpoint
-          }
+          # Buscar outputs diretamente do state via AWS CLI
+          STATE_DATA=$(aws s3 cp s3://${{ secrets.TF_VAR_BUCKET_NAME }}/database-postgres/terraform.tfstate -)
           
-          output "db_name" {
-            value = data.terraform_remote_state.postgres.outputs.postgres_database_name
-          }
+          # Extrair valores usando jq
+          export DB_HOST_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.postgres_instance_endpoint.value')
+          export DB_NAME_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.postgres_database_name.value') 
+          export DB_USERNAME_VALUE=$(echo "$STATE_DATA" | jq -r '.outputs.postgres_master_username.value')
           
-          output "db_username" {
-            value = data.terraform_remote_state.postgres.outputs.postgres_master_username
-          }
-          EOF
+          # Validar se os valores foram obtidos
+          if [ "$DB_HOST_VALUE" = "null" ] || [ -z "$DB_HOST_VALUE" ]; then
+            echo "❌ Erro: Não foi possível obter DB_HOST_VALUE do state"
+            exit 1
+          fi
           
-          # Buscar dados do PostgreSQL
-          terraform init
-          terraform apply -auto-approve
+          echo "✅ Dados do PostgreSQL obtidos com sucesso:"
+          echo "Host: $DB_HOST_VALUE"
+          echo "Database: $DB_NAME_VALUE" 
+          echo "User: $DB_USERNAME_VALUE"
           
-          # Exportar como environment variables para próximos steps
-          echo "DB_HOST_VALUE=$(terraform output -raw db_host)" >> $GITHUB_ENV
-          echo "DB_NAME_VALUE=$(terraform output -raw db_name)" >> $GITHUB_ENV
-          echo "DB_USERNAME_VALUE=$(terraform output -raw db_username)" >> $GITHUB_ENV
+          # Exportar para próximos steps
+          echo "DB_HOST_VALUE=$DB_HOST_VALUE" >> $GITHUB_ENV
+          echo "DB_NAME_VALUE=$DB_NAME_VALUE" >> $GITHUB_ENV
+          echo "DB_USERNAME_VALUE=$DB_USERNAME_VALUE" >> $GITHUB_ENV
 
       - name: Configurar acesso ao cluster EKS
         run: |
@@ -178,7 +161,7 @@ jobs:
 
       - name: Atualizar ConfigMap do Kubernetes
         run: |
-          # Atualizar oficina-mecanica-config com dados AUTOMÁTICOS do Aurora
+          # Atualizar oficina-mecanica-config com dados AUTOMÁTICOS do PostgreSQL
           kubectl create configmap oficina-mecanica-config \
             --from-literal=DatabaseConnection__Host="$DB_HOST_VALUE" \
             --from-literal=DatabaseConnection__Port=5432 \
