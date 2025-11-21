@@ -117,39 +117,39 @@ jobs:
       - name: Buscar dados do Aurora via Terraform
         working-directory: ./terraform-temp
         run: |
-          # Criar arquivo terraform temporário para buscar outputs do Aurora
-          cat > aurora-data.tf << 'EOF'
+          # Criar arquivo terraform temporário para buscar outputs do PostgreSQL
+          cat > postgres-data.tf << 'EOF'
           terraform {
             backend "s3" {
               bucket = "${{ secrets.TF_VAR_BUCKET_NAME }}"
-              key    = "database-aurora/terraform.tfstate"
+              key    = "database-postgres/terraform.tfstate"
               region = "${{ env.AWS_REGION }}"
             }
           }
           
-          data "terraform_remote_state" "aurora" {
+          data "terraform_remote_state" "postgres" {
             backend = "s3"
             config = {
               bucket = "${{ secrets.TF_VAR_BUCKET_NAME }}"
-              key    = "database-aurora/terraform.tfstate"
+              key    = "database-postgres/terraform.tfstate"
               region = "${{ env.AWS_REGION }}"
             }
           }
           
           output "db_host" {
-            value = data.terraform_remote_state.aurora.outputs.aurora_cluster_endpoint
+            value = data.terraform_remote_state.postgres.outputs.postgres_instance_endpoint
           }
           
           output "db_name" {
-            value = data.terraform_remote_state.aurora.outputs.aurora_database_name
+            value = data.terraform_remote_state.postgres.outputs.postgres_database_name
           }
           
           output "db_username" {
-            value = data.terraform_remote_state.aurora.outputs.aurora_master_username
+            value = data.terraform_remote_state.postgres.outputs.postgres_master_username
           }
           EOF
           
-          # Buscar dados do Aurora
+          # Buscar dados do PostgreSQL
           terraform init
           terraform apply -auto-approve
           
