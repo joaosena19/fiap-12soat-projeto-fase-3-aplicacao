@@ -4,7 +4,11 @@ using Application.Identidade.Dtos;
 using Infrastructure.Database;
 using Infrastructure.Handlers.Identidade;
 using Infrastructure.Repositories.Identidade;
+using Infrastructure.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Shared.Options;
+using Infrastructure.Authentication.PasswordHashing;
 
 namespace API.Endpoints.Identidade
 {
@@ -17,10 +21,12 @@ namespace API.Endpoints.Identidade
     public class UsuarioController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public UsuarioController(AppDbContext context)
+        public UsuarioController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -64,11 +70,17 @@ namespace API.Endpoints.Identidade
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Post([FromBody] CriarUsuarioDto dto)
         {
+            // Configurar PasswordHasher com opções do appsettings
+            var argon2Options = new Argon2HashingOptions();
+            _configuration.GetSection("Argon2HashingOptions").Bind(argon2Options);
+            var options = Options.Create(argon2Options);
+            var passwordHasher = new PasswordHasher(options);
+
             var gateway = new UsuarioRepository(_context);
             var presenter = new CriarUsuarioPresenter();
             var handler = new UsuarioHandler();
             
-            await handler.CriarUsuarioAsync(dto, gateway, presenter);
+            await handler.CriarUsuarioAsync(dto, gateway, presenter, passwordHasher);
             return presenter.ObterResultado();
         }
     }

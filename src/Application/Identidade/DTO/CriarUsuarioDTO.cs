@@ -15,7 +15,7 @@ namespace Application.Identidade.Dtos
         /// Senha em texto claro (será criptografada pelo sistema)
         /// </summary>
         /// <example>MinhaSenh@123</example>
-        public string SenhaNaoCriptografada { get; set; } = string.Empty;
+        public string SenhaNaoHasheada { get; set; } = string.Empty;
 
         /// <summary>
         /// Lista de roles para o usuário
