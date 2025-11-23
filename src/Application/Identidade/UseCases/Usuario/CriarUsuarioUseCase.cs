@@ -22,20 +22,8 @@ namespace Application.Identidade.UseCases.Usuario
                     return;
                 }
 
-                // Converte as strings de roles para enum
-                var roles = new List<Role>();
-                foreach (var roleString in dto.Roles)
-                {
-                    if (Enum.TryParse<RoleEnum>(roleString, out var roleEnum))
-                    {
-                        roles.Add(Role.From(roleEnum));
-                    }
-                    else
-                    {
-                        presenter.ApresentarErro($"Role inválido: {roleString}", ErrorType.InvalidInput);
-                        return;
-                    }
-                }
+                // Converte as strings de roles
+                var roles = dto.Roles.Select(roleString => Role.From(roleString)).ToList();
 
                 // Cria hash da senha
                 var senhaHash = new SenhaHash(dto.SenhaNaoCriptografada);
