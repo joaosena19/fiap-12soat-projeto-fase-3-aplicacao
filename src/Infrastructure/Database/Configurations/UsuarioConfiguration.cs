@@ -49,7 +49,7 @@ namespace Infrastructure.Database.Configurations
                        j => j.HasOne<Role>()
                             .WithMany()
                             .HasForeignKey("role_id")
-                            .HasPrincipalKey(nameof(Role.RoleEnum)),
+                            .HasPrincipalKey(nameof(Role.Id)),
                        j => j.HasOne<Usuario>()
                             .WithMany()
                             .HasForeignKey("usuario_id"),

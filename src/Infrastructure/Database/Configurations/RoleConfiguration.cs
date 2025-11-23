@@ -1,5 +1,5 @@
 using Domain.Identidade.Enums;
-using Domain.Identidade.ValueObjects;
+using Domain.Identidade.Aggregates;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,24 +10,32 @@ namespace Infrastructure.Database.Configurations
         public void Configure(EntityTypeBuilder<Role> builder)
         {
             builder.ToTable("roles");
-            builder.HasKey(r => r.RoleEnum);
+            builder.HasKey(r => r.Id);
 
-            builder.Property(r => r.RoleEnum)
+            builder.Property(r => r.Id)
                    .HasColumnName("id")
                    .HasConversion(
                        v => (int)v,
                        v => (RoleEnum)v
                    );
 
-            builder.Property(r => r.Nome)
-                   .HasColumnName("nome")
-                   .IsRequired()
-                   .HasMaxLength(50);
+            builder.OwnsOne(r => r.Nome, nome =>
+            {
+                nome.Property(p => p.Valor)
+                    .HasColumnName("nome")
+                    .IsRequired()
+                    .HasMaxLength(50);
+            });
 
             // Seed data para as roles
             builder.HasData(
-                new { RoleEnum = RoleEnum.Administrador, Nome = RoleEnum.Administrador.ToString() },
-                new { RoleEnum = RoleEnum.Cliente, Nome = RoleEnum.Cliente.ToString() }
+                new { Id = RoleEnum.Administrador },
+                new { Id = RoleEnum.Cliente }
+            );
+            
+            builder.OwnsOne(r => r.Nome).HasData(
+                new { RoleId = RoleEnum.Administrador, Valor = RoleEnum.Administrador.ToString() },
+                new { RoleId = RoleEnum.Cliente, Valor = RoleEnum.Cliente.ToString() }
             );
         }
     }
