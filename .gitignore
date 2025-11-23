@@ -57,9 +57,11 @@ nunit-*.xml
 .vs
 *.csproj.user
 CoverageReport/
+.vs/
+bin/
+obj/
 
 # Visual Studio temporary files
-.vs/
 **/FileContentIndex/
 **/DesignTimeBuild/
 **/.vs/
