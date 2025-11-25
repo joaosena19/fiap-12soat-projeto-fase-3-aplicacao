@@ -1,0 +1,72 @@
+using Application.Contracts.Presenters;
+using Bogus;
+using Shared.Enums;
+using Tests.Application.Identidade.Helpers;
+using Tests.Application.SharedHelpers.AggregateBuilders;
+using Tests.Application.SharedHelpers.Gateways;
+using UsuarioAggregate = Domain.Identidade.Aggregates.Usuario;
+
+namespace Tests.Application.Identidade
+{
+    public class BuscarUsuarioPorDocumentoUseCaseTest
+    {
+        private readonly IdentidadeTestFixture _fixture;
+
+        public BuscarUsuarioPorDocumentoUseCaseTest()
+        {
+            _fixture = new IdentidadeTestFixture();
+        }
+
+        [Fact(DisplayName = "Deve buscar usuário com sucesso quando usuário existir")]
+        [Trait("UseCase", "BuscarUsuarioPorDocumento")]
+        public async Task ExecutarAsync_DeveBuscarUsuarioComSucesso_QuandoUsuarioExistir()
+        {
+            // Arrange
+            var usuarioExistente = new UsuarioBuilder().Build();
+            var documento = usuarioExistente.DocumentoIdentificadorUsuario.Valor;
+
+            _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).Retorna(usuarioExistente);
+
+            // Act
+            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.DeveTerApresentadoSucesso<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>(usuarioExistente);
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.NaoDeveTerApresentadoErro<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando usuário não existir")]
+        [Trait("UseCase", "BuscarUsuarioPorDocumento")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoUsuarioNaoExistir()
+        {
+            // Arrange
+            var documento = new Faker("pt_BR").Random.Replace("###########");
+
+            _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).NaoRetornaNada();
+
+            // Act
+            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>("Usuário não encontrado.", ErrorType.ResourceNotFound);
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro interno quando ocorrer exceção genérica")]
+        [Trait("UseCase", "BuscarUsuarioPorDocumento")]
+        public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
+        {
+            // Arrange
+            var documento = new Faker("pt_BR").Random.Replace("###########");
+
+            _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>();
+        }
+    }
+}

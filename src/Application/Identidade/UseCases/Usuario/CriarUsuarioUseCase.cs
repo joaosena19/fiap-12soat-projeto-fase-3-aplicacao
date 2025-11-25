@@ -1,12 +1,12 @@
-using Application.Identidade.Dtos;
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.Contracts.Services;
+using Application.Identidade.Dtos;
 using Domain.Identidade.Aggregates;
 using Domain.Identidade.ValueObjects;
-using Domain.Identidade.Enums;
 using Shared.Enums;
 using Shared.Exceptions;
+using UsuarioAggregate = Domain.Identidade.Aggregates.Usuario;
 
 namespace Application.Identidade.UseCases.Usuario
 {
@@ -29,7 +29,7 @@ namespace Application.Identidade.UseCases.Usuario
                 var senhaHasheada = passwordHasher.Hash(dto.SenhaNaoHasheada);
                 var senhaHash = new SenhaHash(senhaHasheada);
 
-                var novoUsuario = Domain.Identidade.Aggregates.Usuario.Criar(dto.DocumentoIdentificador, senhaHash.Valor, roles);
+                var novoUsuario = UsuarioAggregate.Criar(dto.DocumentoIdentificador, senhaHash.Valor, roles);
                 var usuarioSalvo = await gateway.SalvarAsync(novoUsuario);
 
                 presenter.ApresentarSucesso(usuarioSalvo);
