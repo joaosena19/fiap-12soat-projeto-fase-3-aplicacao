@@ -51,6 +51,9 @@ namespace Tests.Other.Authentication
         [InlineData("GET", "/api/cadastros/veiculos/cliente/00000000-0000-0000-0000-000000000000")]
         [InlineData("POST", "/api/cadastros/veiculos")]
         [InlineData("PUT", "/api/cadastros/veiculos/00000000-0000-0000-0000-000000000000")]
+        // UsuarioController endpoints
+        [InlineData("GET", "/api/identidade/usuarios/documento/12345678901")]
+        [InlineData("POST", "/api/identidade/usuarios")]
         // EstoqueItemController endpoints
         [InlineData("GET", "/api/estoque/itens")]
         [InlineData("GET", "/api/estoque/itens/00000000-0000-0000-0000-000000000000")]
