@@ -1,6 +1,8 @@
 using Domain.Identidade.Enums;
 using Domain.Identidade.ValueObjects;
 using Shared.Attributes;
+using Shared.Exceptions;
+using Shared.Enums;
 using UUIDNext;
 
 namespace Domain.Identidade.Aggregates
@@ -27,6 +29,9 @@ namespace Domain.Identidade.Aggregates
 
         public static Usuario Criar(string documento, string senhaHash, List<Role> roles)
         {
+            if (roles == null || !roles.Any())
+                throw new DomainException("Usuário deve ter pelo menos uma role.", ErrorType.InvalidInput);
+
             return new Usuario(
                 Uuid.NewSequential(), 
                 new DocumentoIdentificadorUsuario(documento), 
