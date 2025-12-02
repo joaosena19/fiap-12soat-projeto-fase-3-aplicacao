@@ -41,6 +41,17 @@ namespace Infrastructure.Database.Configurations
                      .HasMaxLength(500);
             });
 
+            builder.OwnsOne(u => u.Status, status =>
+            {
+                status.Property(p => p.Valor)
+                      .HasColumnName("status")
+                      .IsRequired()
+                      .HasConversion(
+                          v => v.ToString().ToLower(),
+                          v => Enum.Parse<StatusUsuarioEnum>(v, true)
+                      );
+            });
+
             // Configuração da lista de Roles com tabela de junção
             builder.HasMany(u => u.Roles)
                    .WithMany()

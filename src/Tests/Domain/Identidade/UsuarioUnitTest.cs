@@ -1,5 +1,6 @@
 using Domain.Identidade.Aggregates;
 using Domain.Identidade.Enums;
+using Domain.Identidade.ValueObjects;
 using FluentAssertions;
 using Shared.Exceptions;
 using Tests.Helpers;
@@ -158,6 +159,83 @@ namespace Tests.Domain.Identidade
             // Act & Assert
             FluentActions.Invoking(() => Usuario.Criar(documento, senhaHash, rolesVazias))
                 .Should().Throw<DomainException>();
+        }
+
+        #endregion
+
+        #region Testes ValueObject StatusUsuario
+
+        [Fact(DisplayName = "Deve criar usuário com status Ativo por padrão")]
+        [Trait("ValueObject", "StatusUsuario")]
+        public void UsuarioCriar_Deve_TerStatusAtivo_Quando_Criado()
+        {
+            // Arrange
+            var documento = DocumentoHelper.GerarCpfValido();
+            var senhaHash = "$argon2id$v=19$m=65536,t=4,p=1$abcdefghijklmnop$1234567890abcdef1234567890abcdef";
+            var role = Role.Cliente();
+
+            // Act
+            var usuario = Usuario.Criar(documento, senhaHash, role);
+
+            // Assert
+            usuario.Should().NotBeNull();
+            usuario.Status.Should().NotBeNull();
+            usuario.Status.Valor.Should().Be(StatusUsuarioEnum.Ativo);
+            usuario.Status.EstaAtivo().Should().BeTrue();
+            usuario.Status.EstaInativo().Should().BeFalse();
+        }
+
+        [Fact(DisplayName = "Deve permitir ativar usuário")]
+        [Trait("ValueObject", "StatusUsuario")]
+        public void Usuario_Deve_PermitirAtivar_Quando_ChamadoMetodoAtivar()
+        {
+            // Arrange
+            var documento = DocumentoHelper.GerarCpfValido();
+            var senhaHash = "$argon2id$v=19$m=65536,t=4,p=1$abcdefghijklmnop$1234567890abcdef1234567890abcdef";
+            var role = Role.Cliente();
+            var usuario = Usuario.Criar(documento, senhaHash, role);
+
+            // Act
+            usuario.Ativar();
+
+            // Assert
+            usuario.Status.Valor.Should().Be(StatusUsuarioEnum.Ativo);
+            usuario.Status.EstaAtivo().Should().BeTrue();
+        }
+
+        [Fact(DisplayName = "Deve permitir inativar usuário")]
+        [Trait("ValueObject", "StatusUsuario")]
+        public void Usuario_Deve_PermitirInativar_Quando_ChamadoMetodoInativar()
+        {
+            // Arrange
+            var documento = DocumentoHelper.GerarCpfValido();
+            var senhaHash = "$argon2id$v=19$m=65536,t=4,p=1$abcdefghijklmnop$1234567890abcdef1234567890abcdef";
+            var role = Role.Cliente();
+            var usuario = Usuario.Criar(documento, senhaHash, role);
+
+            // Act
+            usuario.Inativar();
+
+            // Assert
+            usuario.Status.Valor.Should().Be(StatusUsuarioEnum.Inativo);
+            usuario.Status.EstaInativo().Should().BeTrue();
+            usuario.Status.EstaAtivo().Should().BeFalse();
+        }
+
+        [Theory(DisplayName = "Deve criar StatusUsuario com factory methods")]
+        [InlineData(StatusUsuarioEnum.Ativo)]
+        [InlineData(StatusUsuarioEnum.Inativo)]
+        [Trait("ValueObject", "StatusUsuario")]
+        public void StatusUsuario_Deve_CriarComFactory_Quando_EnumValido(StatusUsuarioEnum statusEnum)
+        {
+            // Act
+            var status = statusEnum == StatusUsuarioEnum.Ativo 
+                ? StatusUsuario.Ativo() 
+                : StatusUsuario.Inativo();
+
+            // Assert
+            status.Should().NotBeNull();
+            status.Valor.Should().Be(statusEnum);
         }
 
         #endregion
