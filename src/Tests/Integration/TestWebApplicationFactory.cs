@@ -52,7 +52,13 @@ namespace Tests.Integration
                     options.UseInMemoryDatabase(_databaseName);
                 });
 
-
+                // Configura o ServiceProvider para inicializar o banco
+                var serviceProvider = services.BuildServiceProvider();
+                using var scope = serviceProvider.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                
+                // Garante que o banco é criado e inicializado com os dados de seed
+                context.Database.EnsureCreated();
             });
 
             base.ConfigureWebHost(builder);

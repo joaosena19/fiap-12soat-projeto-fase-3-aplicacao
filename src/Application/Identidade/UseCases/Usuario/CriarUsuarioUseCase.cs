@@ -23,8 +23,14 @@ namespace Application.Identidade.UseCases.Usuario
                     return;
                 }
 
-                // Converte as strings de roles
-                var roles = dto.Roles.Select(roleString => Role.From(roleString)).ToList();
+                // Busca as roles existentes no banco ao invés de criar novas instâncias
+                var roles = await gateway.ObterRolesAsync(dto.Roles);
+                
+                if (roles.Count != dto.Roles.Count)
+                {
+                    presenter.ApresentarErro("Uma ou mais roles informadas são inválidas.", ErrorType.InvalidInput);
+                    return;
+                }
 
                 var senhaHasheada = passwordHasher.Hash(dto.SenhaNaoHasheada);
                 var senhaHash = new SenhaHash(senhaHasheada);

@@ -22,6 +22,22 @@ namespace Tests.Application.SharedHelpers.Gateways
         public void LancaExcecao(Exception excecao) => _mock.Setup(g => g.ObterPorDocumentoAsync(_documento)).ThrowsAsync(excecao);
     }
 
+    public class UsuarioGatewayObterRolesSetupBuilder
+    {
+        private readonly Mock<IUsuarioGateway> _mock;
+        private readonly IEnumerable<string> _roleStrings;
+
+        public UsuarioGatewayObterRolesSetupBuilder(Mock<IUsuarioGateway> mock, IEnumerable<string> roleStrings)
+        {
+            _mock = mock;
+            _roleStrings = roleStrings;
+        }
+
+        public void Retorna(List<Role> roles) => _mock.Setup(g => g.ObterRolesAsync(_roleStrings)).ReturnsAsync(roles);
+
+        public void LancaExcecao(Exception excecao) => _mock.Setup(g => g.ObterRolesAsync(_roleStrings)).ThrowsAsync(excecao);
+    }
+
     public class UsuarioGatewaySalvarSetupBuilder
     {
         private readonly Mock<IUsuarioGateway> _mock;
@@ -39,6 +55,8 @@ namespace Tests.Application.SharedHelpers.Gateways
     public static class UsuarioGatewayMockExtensions
     {
         public static UsuarioGatewayObterPorDocumentoSetupBuilder AoObterPorDocumento(this Mock<IUsuarioGateway> mock, string documento) => new UsuarioGatewayObterPorDocumentoSetupBuilder(mock, documento);
+
+        public static UsuarioGatewayObterRolesSetupBuilder AoObterRoles(this Mock<IUsuarioGateway> mock, IEnumerable<string> roleStrings) => new UsuarioGatewayObterRolesSetupBuilder(mock, roleStrings);
 
         public static UsuarioGatewaySalvarSetupBuilder AoSalvar(this Mock<IUsuarioGateway> mock) => new UsuarioGatewaySalvarSetupBuilder(mock);
     }

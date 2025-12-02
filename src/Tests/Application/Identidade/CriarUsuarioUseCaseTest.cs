@@ -1,4 +1,5 @@
 using Application.Contracts.Presenters;
+using Domain.Identidade.Aggregates;
 using Moq;
 using Shared.Enums;
 using Tests.Application.Identidade.Helpers;
@@ -39,7 +40,10 @@ namespace Tests.Application.Identidade
                 .ComRoleCliente()
                 .Build();
 
+            var rolesEsperadas = new List<Role> { Role.Cliente() };
+
             _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).NaoRetornaNada();
+            _fixture.UsuarioGatewayMock.AoObterRoles(dto.Roles).Retorna(rolesEsperadas);
             _fixture.PasswordHasherMock.Setup(ph => ph.Hash(senhaNaoHasheada)).Returns(senhaHasheada);
             _fixture.UsuarioGatewayMock.AoSalvar().Retorna(usuarioEsperado);
 
@@ -87,7 +91,10 @@ namespace Tests.Application.Identidade
                 .ComRoleCliente()
                 .Build();
 
+            var rolesEsperadas = new List<Role> { Role.Cliente() };
+
             _fixture.UsuarioGatewayMock.AoObterPorDocumento(documentoInvalido).NaoRetornaNada();
+            _fixture.UsuarioGatewayMock.AoObterRoles(dto.Roles).Retorna(rolesEsperadas);
             _fixture.PasswordHasherMock.Setup(ph => ph.Hash("senha123")).Returns("hashedpassword");
 
             // Act
@@ -107,7 +114,10 @@ namespace Tests.Application.Identidade
                 .ComRoleCliente()
                 .Build();
 
+            var rolesEsperadas = new List<Role> { Role.Cliente() };
+
             _fixture.UsuarioGatewayMock.AoObterPorDocumento(dto.DocumentoIdentificador).NaoRetornaNada();
+            _fixture.UsuarioGatewayMock.AoObterRoles(dto.Roles).Retorna(rolesEsperadas);
             _fixture.PasswordHasherMock.Setup(ph => ph.Hash("senha123")).Returns("hashedpassword");
             _fixture.UsuarioGatewayMock.AoSalvar().LancaExcecao(new Exception("Falha inesperada"));
 

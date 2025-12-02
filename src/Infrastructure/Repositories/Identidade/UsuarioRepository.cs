@@ -1,5 +1,6 @@
 using Application.Contracts.Gateways;
 using Domain.Identidade.Aggregates;
+using Domain.Identidade.Enums;
 using Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
@@ -19,7 +20,6 @@ namespace Infrastructure.Repositories.Identidade
         {
             await _context.Usuarios.AddAsync(usuario);
             await _context.SaveChangesAsync();
-
             return usuario;
         }
 
@@ -37,6 +37,19 @@ namespace Infrastructure.Repositories.Identidade
             return await _context.Usuarios
                 .Include(u => u.Roles)
                 .FirstOrDefaultAsync(u => u.Id == id);
+        }
+
+        public async Task<List<Role>> ObterRolesAsync(IEnumerable<string> roleStrings)
+        {
+            var roleEnums = roleStrings
+                .Select(roleString => Enum.TryParse<RoleEnum>(roleString, true, out var roleEnum) ? roleEnum : (RoleEnum?)null)
+                .Where(role => role.HasValue)
+                .Select(role => role!.Value)
+                .ToList();
+
+            return await _context.Roles
+                .Where(r => roleEnums.Contains(r.Id))
+                .ToListAsync();
         }
     }
 }
