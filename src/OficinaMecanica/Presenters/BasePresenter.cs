@@ -25,6 +25,7 @@ namespace API.Presenters
                 ErrorType.ReferenceNotFound => new UnprocessableEntityObjectResult(errorResponse),
                 ErrorType.DomainRuleBroken => new UnprocessableEntityObjectResult(errorResponse),
                 ErrorType.Unauthorized => new UnauthorizedObjectResult(errorResponse),
+                ErrorType.NotAllowed => new ObjectResult(errorResponse) { StatusCode = 403 },
                 _ => new ObjectResult(errorResponse) { StatusCode = 500 }
             };
             _foiSucesso = false;

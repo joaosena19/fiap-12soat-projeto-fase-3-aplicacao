@@ -1,6 +1,7 @@
 using API.Dtos;
 using API.Presenters.Cadastro.Veiculo;
 using Application.Cadastros.Dtos;
+using Infrastructure.Authentication.AtorFactories;
 using Infrastructure.Database;
 using Infrastructure.Handlers.Cadastros;
 using Infrastructure.Repositories.Cadastros;
@@ -14,7 +15,7 @@ namespace API.Endpoints.Cadastro
     [Route("api/cadastros/veiculos")]
     [ApiController]
     [Produces("application/json")]
-    public class VeiculoController : ControllerBase
+    public class VeiculoController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -150,12 +151,12 @@ namespace API.Endpoints.Cadastro
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Put(Guid id, [FromBody] AtualizarVeiculoDto dto)
-        {
+        {           
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new AtualizarVeiculoPresenter();
             var handler = new VeiculoHandler();
             
-            await handler.AtualizarVeiculoAsync(id, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, presenter);
+            await handler.AtualizarVeiculoAsync(Ator, id, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
     }
