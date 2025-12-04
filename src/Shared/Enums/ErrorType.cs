@@ -36,6 +36,11 @@ namespace Shared.Enums
         Unauthorized,
 
         /// <summary>
+        /// Acesso negado (usuário autenticado mas sem permissão)
+        /// </summary>
+        NotAllowed,
+
+        /// <summary>
         /// Erro inesperado (erro padrão)
         /// </summary>
         UnexpectedError

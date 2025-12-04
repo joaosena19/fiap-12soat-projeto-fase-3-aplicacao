@@ -32,6 +32,11 @@ namespace Tests.Application.SharedHelpers.AggregateBuilders
             return this;
         }
 
+        public VeiculoBuilder ComCliente(Guid clienteId)
+        {
+            return ComClienteId(clienteId);
+        }
+
         public VeiculoBuilder ComPlaca(string placa)
         {
             _placa = placa;

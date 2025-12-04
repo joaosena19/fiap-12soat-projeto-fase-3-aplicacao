@@ -155,7 +155,11 @@ namespace API.Endpoints.Cadastro
             var presenter = new AtualizarVeiculoPresenter();
             var handler = new VeiculoHandler();
             
-            await handler.AtualizarVeiculoAsync(id, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, presenter);
+            // TODO: Em produção, extrair Ator do token JWT
+            // Por enquanto, criando um administrador para demonstração
+            var ator = Application.Identidade.Services.Ator.Administrador(Guid.NewGuid());
+            
+            await handler.AtualizarVeiculoAsync(id, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, ator, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
     }

@@ -1,6 +1,7 @@
 using Application.Cadastros.UseCases;
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 using Domain.Cadastros.Enums;
 
 namespace Infrastructure.Handlers.Cadastros
@@ -15,10 +16,10 @@ namespace Infrastructure.Handlers.Cadastros
         }
 
         public async Task AtualizarVeiculoAsync(Guid id, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,
-            IVeiculoGateway gateway, IAtualizarVeiculoPresenter presenter)
+            Ator ator, IVeiculoGateway gateway, IAtualizarVeiculoPresenter presenter)
         {
             var useCase = new AtualizarVeiculoUseCase();
-            await useCase.ExecutarAsync(id, modelo, marca, cor, ano, tipoVeiculo, gateway, presenter);
+            await useCase.ExecutarAsync(id, modelo, marca, cor, ano, tipoVeiculo, ator, gateway, presenter);
         }
 
         public async Task BuscarVeiculosAsync(IVeiculoGateway gateway, IBuscarVeiculosPresenter presenter)
