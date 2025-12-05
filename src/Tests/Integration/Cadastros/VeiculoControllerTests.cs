@@ -789,5 +789,40 @@ namespace Tests.Integration.Cadastros
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.UnprocessableContent);
         }
+
+        [Fact(DisplayName = "GET cliente/{clienteId} deve retornar 403 Forbidden quando cliente tenta acessar veículos de outro cliente")]
+        [Trait("Metodo", "GetByClienteId")]
+        public async Task GetByClienteId_Deve_Retornar403Forbidden_QuandoClienteTentaAcessarVeiculosDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar primeiro cliente
+            var clienteDto1 = new { Nome = "Cliente 1 Lista", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var adminClient = _factory.CreateAuthenticatedClient(); // cliente admin
+            var clienteResponse1 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto1);
+            clienteResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto1.DocumentoIdentificador);
+            cliente1Criado.Should().NotBeNull();
+
+            // Criar segundo cliente e autenticar como este cliente
+            var clienteDto2 = new { Nome = "Cliente 2 Lista", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var clienteResponse2 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto2);
+            clienteResponse2.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente2Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto2.DocumentoIdentificador);
+            cliente2Criado.Should().NotBeNull();
+
+            // Autenticar como segundo cliente
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2Criado!.Id);
+
+            // Act - tentar acessar veículos do primeiro cliente
+            var response = await cliente2AuthenticatedClient.GetAsync($"/api/cadastros/veiculos/cliente/{cliente1Criado!.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
     }
 }

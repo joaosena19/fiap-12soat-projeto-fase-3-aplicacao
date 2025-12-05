@@ -40,10 +40,10 @@ namespace Infrastructure.Handlers.Cadastros
             await useCase.ExecutarAsync(ator, placa, gateway, presenter);
         }
 
-        public async Task BuscarVeiculosPorClienteAsync(Guid clienteId, IVeiculoGateway veiculoGateway, IClienteGateway clienteGateway, IBuscarVeiculosPorClientePresenter presenter)
+        public async Task BuscarVeiculosPorClienteAsync(Ator ator, Guid clienteId, IVeiculoGateway veiculoGateway, IClienteGateway clienteGateway, IBuscarVeiculosPorClientePresenter presenter)
         {
             var useCase = new BuscarVeiculosPorClienteUseCase();
-            await useCase.ExecutarAsync(clienteId, veiculoGateway, clienteGateway, presenter);
+            await useCase.ExecutarAsync(ator, clienteId, veiculoGateway, clienteGateway, presenter);
         }
     }
 }

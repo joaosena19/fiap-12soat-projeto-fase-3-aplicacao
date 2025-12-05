@@ -98,11 +98,13 @@ namespace API.Endpoints.Cadastro
         /// <param name="clienteId">ID do cliente</param>
         /// <returns>Lista de veículos do cliente</returns>
         /// <response code="200">Veículos encontrados com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="422">Cliente não encontrado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("cliente/{clienteId}")]
         [ProducesResponseType(typeof(IEnumerable<RetornoVeiculoDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetByClienteId(Guid clienteId)
         {
@@ -110,8 +112,9 @@ namespace API.Endpoints.Cadastro
             var clienteGateway = new ClienteRepository(_context);
             var presenter = new BuscarVeiculosPorClientePresenter();
             var handler = new VeiculoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.BuscarVeiculosPorClienteAsync(clienteId, veiculoGateway, clienteGateway, presenter);
+            await handler.BuscarVeiculosPorClienteAsync(ator, clienteId, veiculoGateway, clienteGateway, presenter);
             return presenter.ObterResultado();
         }
 
