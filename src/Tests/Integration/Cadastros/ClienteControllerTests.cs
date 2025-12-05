@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using Tests.Helpers;
 
 namespace Tests.Integration.Cadastros
 {
@@ -71,6 +72,43 @@ namespace Tests.Integration.Cadastros
             clienteAtualizado.Should().NotBeNull();
             clienteAtualizado!.Nome.Valor.Should().Be("João Silva Atualizado");
             clienteAtualizado.DocumentoIdentificador.Valor.Should().Be("42103574052"); // CPF não deve mudar
+        }
+
+        [Fact(DisplayName = "PUT deve retornar 403 Forbidden quando cliente tenta atualizar dados de outro cliente")]
+        [Trait("Metodo", "Put")]
+        public async Task Put_Deve_Retornar403Forbidden_QuandoClienteTentaAtualizarDadosDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar primeiro cliente usando admin
+            var criarDto1 = new { Nome = "Cliente 1", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var adminClient = _factory.CreateAuthenticatedClient(); // cliente admin
+            var createResponse1 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", criarDto1);
+            createResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var cliente1Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == criarDto1.DocumentoIdentificador);
+            cliente1Criado.Should().NotBeNull();
+
+            // Criar segundo cliente usando admin
+            var criarDto2 = new { Nome = "Cliente 2", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var createResponse2 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", criarDto2);
+            createResponse2.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var cliente2Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == criarDto2.DocumentoIdentificador);
+            cliente2Criado.Should().NotBeNull();
+
+            // Autenticar como segundo cliente
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2Criado!.Id);
+
+            var atualizarDto = new { Nome = "Nome Modificado" };
+
+            // Act - tentar atualizar dados do primeiro cliente autenticado como segundo cliente
+            var updateResponse = await cliente2AuthenticatedClient.PutAsJsonAsync($"/api/cadastros/clientes/{cliente1Criado!.Id}", atualizarDto);
+
+            // Assert
+            updateResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
         [Fact(DisplayName = "GET deve retornar 200 OK e lista de clientes")]

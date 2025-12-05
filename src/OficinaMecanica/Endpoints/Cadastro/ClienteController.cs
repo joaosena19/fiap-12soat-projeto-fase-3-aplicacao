@@ -14,7 +14,7 @@ namespace API.Endpoints.Cadastro
     [Route("api/cadastros/clientes")]
     [ApiController]
     [Produces("application/json")]
-    public class ClienteController : ControllerBase
+    public class ClienteController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -121,11 +121,13 @@ namespace API.Endpoints.Cadastro
         /// <returns>Cliente atualizado com sucesso</returns>
         /// <response code="200">Cliente atualizado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Cliente não encontrado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(RetornoClienteDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Put(Guid id, [FromBody] AtualizarClienteDto dto)
@@ -133,8 +135,9 @@ namespace API.Endpoints.Cadastro
             var gateway = new ClienteRepository(_context);
             var presenter = new AtualizarClientePresenter();
             var handler = new ClienteHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.AtualizarClienteAsync(id, dto.Nome, gateway, presenter);
+            await handler.AtualizarClienteAsync(ator, id, dto.Nome, gateway, presenter);
             return presenter.ObterResultado();
         }
     }

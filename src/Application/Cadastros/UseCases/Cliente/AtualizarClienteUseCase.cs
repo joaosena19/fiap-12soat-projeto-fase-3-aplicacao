@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Shared.Exceptions;
 using Shared.Enums;
 
@@ -7,7 +9,7 @@ namespace Application.Cadastros.UseCases
 {
     public class AtualizarClienteUseCase
     {
-        public async Task ExecutarAsync(Guid id, string nome, IClienteGateway gateway, IAtualizarClientePresenter presenter)
+        public async Task ExecutarAsync(Ator ator, Guid id, string nome, IClienteGateway gateway, IAtualizarClientePresenter presenter)
         {
             try
             {
@@ -15,6 +17,12 @@ namespace Application.Cadastros.UseCases
                 if (cliente == null)
                 {
                     presenter.ApresentarErro("Cliente não encontrado.", ErrorType.ResourceNotFound);
+                    return;
+                }
+
+                if (!ator.PodeEditarCliente(cliente.Id))
+                {
+                    presenter.ApresentarErro("Acesso negado. Somente administradores ou o próprio cliente podem editar os dados.", ErrorType.NotAllowed);
                     return;
                 }
 

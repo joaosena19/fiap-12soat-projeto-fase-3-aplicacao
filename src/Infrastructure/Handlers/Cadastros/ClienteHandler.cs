@@ -1,6 +1,7 @@
 using Application.Cadastros.UseCases;
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 
 namespace Infrastructure.Handlers.Cadastros
 {
@@ -12,10 +13,10 @@ namespace Infrastructure.Handlers.Cadastros
             await useCase.ExecutarAsync(nome, documento, gateway, presenter);
         }
 
-        public async Task AtualizarClienteAsync(Guid id, string nome, IClienteGateway gateway, IAtualizarClientePresenter presenter)
+        public async Task AtualizarClienteAsync(Ator ator, Guid id, string nome, IClienteGateway gateway, IAtualizarClientePresenter presenter)
         {
             var useCase = new AtualizarClienteUseCase();
-            await useCase.ExecutarAsync(id, nome, gateway, presenter);
+            await useCase.ExecutarAsync(ator, id, nome, gateway, presenter);
         }
 
         public async Task BuscarClientesAsync(IClienteGateway gateway, IBuscarClientesPresenter presenter)
