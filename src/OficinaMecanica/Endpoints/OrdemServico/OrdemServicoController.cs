@@ -16,7 +16,7 @@ namespace API.Endpoints.OrdemServico
     [Route("api/ordens-servico")]
     [ApiController]
     [Produces("application/json")]
-    public class OrdemServicoController : ControllerBase
+    public class OrdemServicoController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -161,12 +161,13 @@ namespace API.Endpoints.OrdemServico
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AdicionarServicos(Guid id, [FromBody] AdicionarServicosDto dto)
         {
+            var ator = BuscarAtorAtual();
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new AdicionarServicosPresenter();
             var handler = new OrdemServicoHandler();
 
             var servicoExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.ServicoExternalService(new Infrastructure.Repositories.Cadastros.ServicoRepository(_context));
-            await handler.AdicionarServicosAsync(id, dto.ServicosOriginaisIds, gateway, servicoExternalService, presenter);
+            await handler.AdicionarServicosAsync(ator, id, dto.ServicosOriginaisIds, gateway, servicoExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -189,12 +190,13 @@ namespace API.Endpoints.OrdemServico
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AdicionarItem(Guid id, [FromBody] AdicionarItemDto dto)
         {
+            var ator = BuscarAtorAtual();
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new AdicionarItemPresenter();
             var handler = new OrdemServicoHandler();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
-            await handler.AdicionarItemAsync(id, dto.ItemEstoqueOriginalId, dto.Quantidade, gateway, estoqueExternalService, presenter);
+            await handler.AdicionarItemAsync(ator, id, dto.ItemEstoqueOriginalId, dto.Quantidade, gateway, estoqueExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -561,7 +563,7 @@ namespace API.Endpoints.OrdemServico
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
 
-            await handler.AlterarStatusAsync(dto.Id, dto.Status, gateway, presenter);
+            await handler.WebhookAlterarStatusAsync(dto.Id, dto.Status, gateway, presenter);
             return presenter.ObterResultado();
         }
     }

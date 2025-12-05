@@ -2601,5 +2601,52 @@ namespace Tests.Integration.OrdemServico
         }
 
         #endregion
+
+        #region Testes de Autorização 403
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/servicos deve retornar 403 quando cliente tenta adicionar serviços")]
+        [Trait("Method", "AdicionarServicos")]
+        [Trait("Authorization", "403")]
+        public async Task AdicionarServicos_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var dto = new
+            {
+                ServicosOriginaisIds = new[] { Guid.NewGuid(), Guid.NewGuid() }
+            };
+
+            // Act - Cliente tenta adicionar serviços
+            var response = await clienteAuthenticatedClient.PostAsJsonAsync($"/api/ordens-servico/{ordemServicoId}/servicos", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/itens deve retornar 403 quando cliente tenta adicionar item")]
+        [Trait("Method", "AdicionarItem")]
+        [Trait("Authorization", "403")]
+        public async Task AdicionarItem_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var dto = new
+            {
+                ItemEstoqueOriginalId = Guid.NewGuid(),
+                Quantidade = 2
+            };
+
+            // Act - Cliente tenta adicionar item
+            var response = await clienteAuthenticatedClient.PostAsJsonAsync($"/api/ordens-servico/{ordemServicoId}/itens", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        #endregion
     }
 }

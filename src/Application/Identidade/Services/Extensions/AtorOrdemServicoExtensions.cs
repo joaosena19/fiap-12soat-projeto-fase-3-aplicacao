@@ -44,4 +44,15 @@ public static class AtorOrdemServicoExtensions
     {
         return ator.PodeGerenciarSistema();
     }
+
+    /// <summary>
+    /// Verifica se o ator tem permissão para gerenciar ordens de serviço.
+    /// Apenas administradores podem gerenciar ordens de serviço.
+    /// </summary>
+    /// <param name="ator">O ator que está tentando realizar a operação</param>
+    /// <returns>True se o ator pode gerenciar ordens de serviço, False caso contrário</returns>
+    public static bool PodeGerenciarOrdemServico(this Ator ator)
+    {
+        return ator.PodeGerenciarSistema();
+    }
 }

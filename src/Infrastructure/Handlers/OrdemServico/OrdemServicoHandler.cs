@@ -2,6 +2,7 @@ using Application.OrdemServico.UseCases;
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.OrdemServico.Interfaces.External;
+using Application.Identidade.Services;
 using Domain.OrdemServico.Enums;
 
 namespace Infrastructure.Handlers.OrdemServico
@@ -32,16 +33,16 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(veiculoId, gateway, veiculoExternalService, presenter);
         }
 
-        public async Task AdicionarServicosAsync(Guid ordemServicoId, List<Guid> servicosOriginaisIds, IOrdemServicoGateway gateway, IServicoExternalService servicoExternalService, IAdicionarServicosPresenter presenter)
+        public async Task AdicionarServicosAsync(Ator ator, Guid ordemServicoId, List<Guid> servicosOriginaisIds, IOrdemServicoGateway gateway, IServicoExternalService servicoExternalService, IAdicionarServicosPresenter presenter)
         {
             var useCase = new AdicionarServicosUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, servicosOriginaisIds, gateway, servicoExternalService, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, servicosOriginaisIds, gateway, servicoExternalService, presenter);
         }
 
-        public async Task AdicionarItemAsync(Guid ordemServicoId, Guid itemEstoqueOriginalId, int quantidade, IOrdemServicoGateway gateway, IEstoqueExternalService estoqueExternalService, IAdicionarItemPresenter presenter)
+        public async Task AdicionarItemAsync(Ator ator, Guid ordemServicoId, Guid itemEstoqueOriginalId, int quantidade, IOrdemServicoGateway gateway, IEstoqueExternalService estoqueExternalService, IAdicionarItemPresenter presenter)
         {
             var useCase = new AdicionarItemUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, itemEstoqueOriginalId, quantidade, gateway, estoqueExternalService, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, itemEstoqueOriginalId, quantidade, gateway, estoqueExternalService, presenter);
         }
 
         public async Task RemoverServicoAsync(Guid ordemServicoId, Guid servicoIncluidoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
@@ -110,10 +111,18 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(codigoOrdemServico, documentoIdentificadorCliente, gateway, clienteExternalService, presenter);
         }
 
-        public async Task AlterarStatusAsync(Guid ordemServicoId, StatusOrdemServicoEnum status, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task AlterarStatusAsync(Ator ator, Guid ordemServicoId, StatusOrdemServicoEnum status, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new AlterarStatusUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, status, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, status, gateway, presenter);
+        }
+
+        public async Task WebhookAlterarStatusAsync(Guid ordemServicoId, StatusOrdemServicoEnum status, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        {
+            var useCase = new AlterarStatusUseCase();
+            // Para webhooks, vamos criar um ator administrador temporário pois é um sistema externo autorizado
+            var ator = Ator.Administrador(Guid.Empty);
+            await useCase.ExecutarAsync(ator, ordemServicoId, status, gateway, presenter);
         }
     }
 }

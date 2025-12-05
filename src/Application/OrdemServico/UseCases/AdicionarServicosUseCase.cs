@@ -1,6 +1,8 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.OrdemServico.Interfaces.External;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 using Shared.Exceptions;
 
@@ -8,10 +10,15 @@ namespace Application.OrdemServico.UseCases;
 
 public class AdicionarServicosUseCase
 {
-    public async Task ExecutarAsync(Guid ordemServicoId, List<Guid> servicosOriginaisIds, IOrdemServicoGateway gateway, IServicoExternalService servicoExternalService, IAdicionarServicosPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid ordemServicoId, List<Guid> servicosOriginaisIds, IOrdemServicoGateway gateway, IServicoExternalService servicoExternalService, IAdicionarServicosPresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarOrdemServico())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar ordens de serviço.", ErrorType.NotAllowed);
+                return;
+            }
             if (servicosOriginaisIds == null || servicosOriginaisIds.Count == 0)
             {
                 presenter.ApresentarErro("É necessário informar ao menos um serviço para adicionar na Ordem de Serviço", ErrorType.InvalidInput);
