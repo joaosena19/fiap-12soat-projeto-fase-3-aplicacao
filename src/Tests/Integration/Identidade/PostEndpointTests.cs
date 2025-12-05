@@ -168,5 +168,27 @@ namespace Tests.Integration.Identidade
             usuarioEntity3.Should().NotBeNull();
             usuarioEntity3!.Roles.Should().HaveCount(1).And.Contain(r => r.Id == RoleEnum.Administrador);
         }
+
+        [Fact(DisplayName = "POST deve retornar 403 Forbidden quando cliente tenta criar usuário")]
+        [Trait("Metodo", "Post")]
+        public async Task Post_Deve_Retornar403Forbidden_QuandoClienteTentaCriarUsuario()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var cpf = DocumentoHelper.GerarCpfValido();
+            var dto = new
+            {
+                DocumentoIdentificador = cpf,
+                SenhaNaoHasheada = "senhaSegura123",
+                Roles = new[] { "Cliente" }
+            };
+
+            // Act - Cliente tenta criar usuário
+            var response = await clienteAuthenticatedClient.PostAsJsonAsync("/api/identidade/usuarios", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
     }
 }

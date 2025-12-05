@@ -5,6 +5,7 @@ using Shared.Enums;
 using Tests.Application.Identidade.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using Tests.Helpers;
 using UsuarioAggregate = Domain.Identidade.Aggregates.Usuario;
 
@@ -24,6 +25,7 @@ namespace Tests.Application.Identidade
         public async Task ExecutarAsync_DeveCriarUsuarioComSucesso()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var documento = DocumentoHelper.GerarCpfValido();
             var senhaNaoHasheada = "senha123";
             var senhaHasheada = "$argon2id$v=19$m=65536,t=4,p=1$abcdefghijklmnop$hashedpassword123";
@@ -48,7 +50,7 @@ namespace Tests.Application.Identidade
             _fixture.UsuarioGatewayMock.AoSalvar().Retorna(usuarioEsperado);
 
             // Act
-            await _fixture.CriarUsuarioUseCase.ExecutarAsync(dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
+            await _fixture.CriarUsuarioUseCase.ExecutarAsync(ator, dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
 
             // Assert
             _fixture.CriarUsuarioPresenterMock.DeveTerApresentadoSucesso<ICriarUsuarioPresenter, UsuarioAggregate>(usuarioEsperado);
@@ -61,6 +63,7 @@ namespace Tests.Application.Identidade
         public async Task ExecutarAsync_DeveApresentarErro_QuandoUsuarioJaExiste()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var documento = DocumentoHelper.GerarCpfValido();
             var usuarioExistente = new UsuarioBuilder().ComDocumento(documento).Build();
 
@@ -72,7 +75,7 @@ namespace Tests.Application.Identidade
             _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).Retorna(usuarioExistente);
 
             // Act
-            await _fixture.CriarUsuarioUseCase.ExecutarAsync(dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
+            await _fixture.CriarUsuarioUseCase.ExecutarAsync(ator, dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
 
             // Assert
             _fixture.CriarUsuarioPresenterMock.DeveTerApresentadoErro<ICriarUsuarioPresenter, UsuarioAggregate>("Já existe um usuário cadastrado com este documento.", ErrorType.Conflict);
@@ -85,6 +88,7 @@ namespace Tests.Application.Identidade
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoErroDocumentoInvalido()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var documentoInvalido = "documento_invalido";
             var dto = new CriarUsuarioDtoBuilder()
                 .ComDocumento(documentoInvalido)
@@ -98,7 +102,7 @@ namespace Tests.Application.Identidade
             _fixture.PasswordHasherMock.Setup(ph => ph.Hash("senha123")).Returns("hashedpassword");
 
             // Act
-            await _fixture.CriarUsuarioUseCase.ExecutarAsync(dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
+            await _fixture.CriarUsuarioUseCase.ExecutarAsync(ator, dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
 
             // Assert
             _fixture.CriarUsuarioPresenterMock.DeveTerApresentadoErro<ICriarUsuarioPresenter, UsuarioAggregate>("Documento de identificação de usuário inválido", ErrorType.InvalidInput);
@@ -110,6 +114,7 @@ namespace Tests.Application.Identidade
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dto = new CriarUsuarioDtoBuilder()
                 .ComRoleCliente()
                 .Build();
@@ -122,10 +127,28 @@ namespace Tests.Application.Identidade
             _fixture.UsuarioGatewayMock.AoSalvar().LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
-            await _fixture.CriarUsuarioUseCase.ExecutarAsync(dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
+            await _fixture.CriarUsuarioUseCase.ExecutarAsync(ator, dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
 
             // Assert
             _fixture.CriarUsuarioPresenterMock.DeveTerApresentadoErro<ICriarUsuarioPresenter, UsuarioAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.CriarUsuarioPresenterMock.NaoDeveTerApresentadoSucesso<ICriarUsuarioPresenter, UsuarioAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta criar usuário")]
+        [Trait("UseCase", "CriarUsuario")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaCriarUsuario()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var dto = new CriarUsuarioDtoBuilder()
+                .ComRoleCliente()
+                .Build();
+
+            // Act
+            await _fixture.CriarUsuarioUseCase.ExecutarAsync(ator, dto, _fixture.UsuarioGatewayMock.Object, _fixture.CriarUsuarioPresenterMock.Object, _fixture.PasswordHasherMock.Object);
+
+            // Assert
+            _fixture.CriarUsuarioPresenterMock.DeveTerApresentadoErro<ICriarUsuarioPresenter, UsuarioAggregate>("Acesso negado. Apenas administradores podem gerenciar usuários.", ErrorType.NotAllowed);
             _fixture.CriarUsuarioPresenterMock.NaoDeveTerApresentadoSucesso<ICriarUsuarioPresenter, UsuarioAggregate>();
         }
     }

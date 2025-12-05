@@ -4,6 +4,7 @@ using Shared.Enums;
 using Tests.Application.Identidade.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using UsuarioAggregate = Domain.Identidade.Aggregates.Usuario;
 
 namespace Tests.Application.Identidade
@@ -22,13 +23,14 @@ namespace Tests.Application.Identidade
         public async Task ExecutarAsync_DeveBuscarUsuarioComSucesso_QuandoUsuarioExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var usuarioExistente = new UsuarioBuilder().Build();
             var documento = usuarioExistente.DocumentoIdentificadorUsuario.Valor;
 
             _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).Retorna(usuarioExistente);
 
             // Act
-            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
+            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
 
             // Assert
             _fixture.BuscarUsuarioPorDocumentoPresenterMock.DeveTerApresentadoSucesso<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>(usuarioExistente);
@@ -40,12 +42,13 @@ namespace Tests.Application.Identidade
         public async Task ExecutarAsync_DeveApresentarErro_QuandoUsuarioNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var documento = new Faker("pt_BR").Random.Replace("###########");
 
             _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).NaoRetornaNada();
 
             // Act
-            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
+            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
 
             // Assert
             _fixture.BuscarUsuarioPorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>("Usuário não encontrado.", ErrorType.ResourceNotFound);
@@ -57,15 +60,32 @@ namespace Tests.Application.Identidade
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var documento = new Faker("pt_BR").Random.Replace("###########");
 
             _fixture.UsuarioGatewayMock.AoObterPorDocumento(documento).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
-            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
+            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
 
             // Assert
             _fixture.BuscarUsuarioPorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta buscar usuário por documento")]
+        [Trait("UseCase", "BuscarUsuarioPorDocumento")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaBuscarUsuarioPorDocumento()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var documento = new Faker("pt_BR").Random.Replace("###########");
+
+            // Act
+            await _fixture.BuscarUsuarioPorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.UsuarioGatewayMock.Object, _fixture.BuscarUsuarioPorDocumentoPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarUsuarioPorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>("Acesso negado. Apenas administradores podem gerenciar usuários.", ErrorType.NotAllowed);
             _fixture.BuscarUsuarioPorDocumentoPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarUsuarioPorDocumentoPresenter, UsuarioAggregate>();
         }
     }

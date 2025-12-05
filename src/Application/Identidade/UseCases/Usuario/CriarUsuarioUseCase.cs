@@ -2,6 +2,8 @@ using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.Contracts.Services;
 using Application.Identidade.Dtos;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Domain.Identidade.Aggregates;
 using Domain.Identidade.ValueObjects;
 using Shared.Enums;
@@ -12,10 +14,16 @@ namespace Application.Identidade.UseCases.Usuario
 {
     public class CriarUsuarioUseCase
     {
-        public async Task ExecutarAsync(CriarUsuarioDto dto, IUsuarioGateway gateway, ICriarUsuarioPresenter presenter, IPasswordHasher passwordHasher)
+        public async Task ExecutarAsync(Ator ator, CriarUsuarioDto dto, IUsuarioGateway gateway, ICriarUsuarioPresenter presenter, IPasswordHasher passwordHasher)
         {
             try
             {
+                if (!ator.PodeGerenciarUsuarios())
+                {
+                    presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar usuários.", ErrorType.NotAllowed);
+                    return;
+                }
+
                 var usuarioExistente = await gateway.ObterPorDocumentoAsync(dto.DocumentoIdentificador);
                 if (usuarioExistente != null)
                 {

@@ -70,5 +70,21 @@ namespace Tests.Integration.Identidade
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
+
+        [Fact(DisplayName = "GET /documento/{documento} deve retornar 403 Forbidden quando cliente tenta buscar usuário por documento")]
+        [Trait("Metodo", "GetByDocumento")]
+        public async Task GetByDocumento_Deve_Retornar403Forbidden_QuandoClienteTentaBuscarUsuarioPorDocumento()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var cpfInexistente = DocumentoHelper.GerarCpfValido();
+
+            // Act - Cliente tenta buscar usuário por documento
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/identidade/usuarios/documento/{cpfInexistente}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
     }
 }

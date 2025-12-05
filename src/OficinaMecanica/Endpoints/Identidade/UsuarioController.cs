@@ -1,4 +1,5 @@
 using API.Dtos;
+using API.Endpoints;
 using API.Presenters.Identidade.Usuario;
 using Application.Identidade.Dtos;
 using Infrastructure.Database;
@@ -18,7 +19,7 @@ namespace API.Endpoints.Identidade
     [Route("api/identidade/usuarios")]
     [ApiController]
     [Produces("application/json")]
-    public class UsuarioController : ControllerBase
+    public class UsuarioController : BaseController
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
@@ -49,8 +50,9 @@ namespace API.Endpoints.Identidade
             var gateway = new UsuarioRepository(_context);
             var presenter = new BuscarUsuarioPorDocumentoPresenter();
             var handler = new UsuarioHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.BuscarUsuarioPorDocumentoAsync(documentoUnencoded, gateway, presenter);
+            await handler.BuscarUsuarioPorDocumentoAsync(ator, documentoUnencoded, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -79,8 +81,9 @@ namespace API.Endpoints.Identidade
             var gateway = new UsuarioRepository(_context);
             var presenter = new CriarUsuarioPresenter();
             var handler = new UsuarioHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.CriarUsuarioAsync(dto, gateway, presenter, passwordHasher);
+            await handler.CriarUsuarioAsync(ator, dto, gateway, presenter, passwordHasher);
             return presenter.ObterResultado();
         }
     }
