@@ -4,6 +4,24 @@ using Moq;
 
 namespace Tests.Application.SharedHelpers.Gateways
 {
+    public class UsuarioGatewayObterPorIdSetupBuilder
+    {
+        private readonly Mock<IUsuarioGateway> _mock;
+        private readonly Guid _id;
+
+        public UsuarioGatewayObterPorIdSetupBuilder(Mock<IUsuarioGateway> mock, Guid id)
+        {
+            _mock = mock;
+            _id = id;
+        }
+
+        public void Retorna(Usuario? usuario) => _mock.Setup(g => g.ObterPorIdAsync(_id)).ReturnsAsync(usuario);
+
+        public void NaoRetornaNada() => _mock.Setup(g => g.ObterPorIdAsync(_id)).ReturnsAsync((Usuario?)null);
+
+        public void LancaExcecao(Exception excecao) => _mock.Setup(g => g.ObterPorIdAsync(_id)).ThrowsAsync(excecao);
+    }
+
     public class UsuarioGatewayObterPorDocumentoSetupBuilder
     {
         private readonly Mock<IUsuarioGateway> _mock;
@@ -54,6 +72,8 @@ namespace Tests.Application.SharedHelpers.Gateways
 
     public static class UsuarioGatewayMockExtensions
     {
+        public static UsuarioGatewayObterPorIdSetupBuilder AoObterPorId(this Mock<IUsuarioGateway> mock, Guid id) => new UsuarioGatewayObterPorIdSetupBuilder(mock, id);
+
         public static UsuarioGatewayObterPorDocumentoSetupBuilder AoObterPorDocumento(this Mock<IUsuarioGateway> mock, string documento) => new UsuarioGatewayObterPorDocumentoSetupBuilder(mock, documento);
 
         public static UsuarioGatewayObterRolesSetupBuilder AoObterRoles(this Mock<IUsuarioGateway> mock, IEnumerable<string> roleStrings) => new UsuarioGatewayObterRolesSetupBuilder(mock, roleStrings);

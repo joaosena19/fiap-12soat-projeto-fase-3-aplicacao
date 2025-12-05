@@ -7,10 +7,10 @@ namespace Infrastructure.Handlers.Cadastros
 {
     public class ClienteHandler
     {
-        public async Task CriarClienteAsync(string nome, string documento, IClienteGateway gateway, ICriarClientePresenter presenter)
+        public async Task CriarClienteAsync(Ator ator, string nome, string documento, IClienteGateway clienteGateway, IUsuarioGateway usuarioGateway, ICriarClientePresenter presenter)
         {
             var useCase = new CriarClienteUseCase();
-            await useCase.ExecutarAsync(nome, documento, gateway, presenter);
+            await useCase.ExecutarAsync(ator, nome, documento, clienteGateway, usuarioGateway, presenter);
         }
 
         public async Task AtualizarClienteAsync(Ator ator, Guid id, string nome, IClienteGateway gateway, IAtualizarClientePresenter presenter)

@@ -8,6 +8,7 @@ namespace Tests.Application.Cadastros.Cliente.Helpers
     public class ClienteTestFixture
     {
         public Mock<IClienteGateway> ClienteGatewayMock { get; }
+        public Mock<IUsuarioGateway> UsuarioGatewayMock { get; }
         public Mock<IAtualizarClientePresenter> AtualizarClientePresenterMock { get; }
         public Mock<IBuscarClientePorDocumentoPresenter> BuscarClientePorDocumentoPresenterMock { get; }
         public Mock<IBuscarClientePorIdPresenter> BuscarClientePorIdPresenterMock { get; }
@@ -23,6 +24,7 @@ namespace Tests.Application.Cadastros.Cliente.Helpers
         public ClienteTestFixture()
         {
             ClienteGatewayMock = new Mock<IClienteGateway>();
+            UsuarioGatewayMock = new Mock<IUsuarioGateway>();
             AtualizarClientePresenterMock = new Mock<IAtualizarClientePresenter>();
             BuscarClientePorDocumentoPresenterMock = new Mock<IBuscarClientePorDocumentoPresenter>();
             BuscarClientePorIdPresenterMock = new Mock<IBuscarClientePorIdPresenter>();

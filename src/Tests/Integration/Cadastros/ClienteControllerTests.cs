@@ -465,6 +465,30 @@ namespace Tests.Integration.Cadastros
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
+        [Fact(DisplayName = "POST deve retornar 403 quando usuário tenta criar cliente com documento diferente")]
+        [Trait("Metodo", "Post")]
+        public async Task Post_Deve_Retornar403_QuandoUsuarioTentaCriarClienteComDocumentoDiferente()
+        {
+            // Arrange - Criar primeiro cliente e se autenticar como usuário associado
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var cpfUsuarioExistente = DocumentoHelper.GerarCpfValido();
+            var clienteExistenteEntity = ClienteAggregate.Criar("Cliente Existente", cpfUsuarioExistente);
+            await context.Clientes.AddAsync(clienteExistenteEntity);
+            await context.SaveChangesAsync();
+
+            var usuarioAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteExistenteEntity.Id);
+            var cpfDiferente = DocumentoHelper.GerarCpfValido();
+
+            // Act - Usuário tenta criar novo cliente com CPF diferente do seu
+            var dto = new { Nome = "Outro Cliente", DocumentoIdentificador = cpfDiferente };
+            var response = await usuarioAuthenticatedClient.PostAsJsonAsync("/api/cadastros/clientes", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "GET deve retornar 403 quando cliente tenta listar clientes")]
         [Trait("Metodo", "Get")]
         public async Task Get_Deve_Retornar403_QuandoClienteTentaListarClientes()

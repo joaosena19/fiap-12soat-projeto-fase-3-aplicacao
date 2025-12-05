@@ -4,6 +4,7 @@ using Application.Cadastros.Dtos;
 using Infrastructure.Database;
 using Infrastructure.Handlers.Cadastros;
 using Infrastructure.Repositories.Cadastros;
+using Infrastructure.Repositories.Identidade;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Endpoints.Cadastro
@@ -105,20 +106,24 @@ namespace API.Endpoints.Cadastro
         /// <returns>Cliente criado com sucesso</returns>
         /// <response code="201">Cliente criado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado - Usuário só pode criar cliente com o mesmo documento</response>
         /// <response code="409">Conflito - Cliente já existe</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost]
         [ProducesResponseType(typeof(RetornoClienteDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Post([FromBody] CriarClienteDto dto)
         {
-            var gateway = new ClienteRepository(_context);
+            var clienteGateway = new ClienteRepository(_context);
+            var usuarioGateway = new UsuarioRepository(_context);
             var presenter = new CriarClientePresenter();
             var handler = new ClienteHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.CriarClienteAsync(dto.Nome, dto.DocumentoIdentificador, gateway, presenter);
+            await handler.CriarClienteAsync(ator, dto.Nome, dto.DocumentoIdentificador, clienteGateway, usuarioGateway, presenter);
             return presenter.ObterResultado();
         }
 
