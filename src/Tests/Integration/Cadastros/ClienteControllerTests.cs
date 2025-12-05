@@ -464,5 +464,20 @@ namespace Tests.Integration.Cadastros
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
+
+        [Fact(DisplayName = "GET deve retornar 403 quando cliente tenta listar clientes")]
+        [Trait("Metodo", "Get")]
+        public async Task Get_Deve_Retornar403_QuandoClienteTentaListarClientes()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act - Cliente tenta listar todos os clientes
+            var response = await clienteAuthenticatedClient.GetAsync("/api/cadastros/clientes");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
     }
 }

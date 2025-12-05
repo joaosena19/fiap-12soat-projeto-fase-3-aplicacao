@@ -1,5 +1,7 @@
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 using Tests.Application.Cadastros.Cliente.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using ClienteAggregate = Domain.Cadastros.Aggregates.Cliente;
@@ -19,11 +21,12 @@ namespace Tests.Application.Cadastros.Cliente
         public async Task ExecutarAsync_DeveRetornarListaDeClientes()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var clientes = new List<ClienteAggregate> { new ClienteBuilder().Build(), new ClienteBuilder().Build() };
             _fixture.ClienteGatewayMock.AoObterTodos().Retorna(clientes);
 
             // Act
-            await _fixture.BuscarClientesUseCase.ExecutarAsync(_fixture.ClienteGatewayMock.Object, _fixture.BuscarClientesPresenterMock.Object);
+            await _fixture.BuscarClientesUseCase.ExecutarAsync(ator, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientesPresenterMock.Object);
 
             // Assert
             _fixture.BuscarClientesPresenterMock.DeveTerApresentadoSucesso<IBuscarClientesPresenter, IEnumerable<ClienteAggregate>>(clientes);
@@ -34,11 +37,12 @@ namespace Tests.Application.Cadastros.Cliente
         public async Task ExecutarAsync_DeveRetornarListaVazia_QuandoNaoHouverClientes()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var listaVazia = new List<ClienteAggregate>();
             _fixture.ClienteGatewayMock.AoObterTodos().Retorna(listaVazia);
 
             // Act
-            await _fixture.BuscarClientesUseCase.ExecutarAsync(_fixture.ClienteGatewayMock.Object, _fixture.BuscarClientesPresenterMock.Object);
+            await _fixture.BuscarClientesUseCase.ExecutarAsync(ator, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientesPresenterMock.Object);
 
             // Assert
             _fixture.BuscarClientesPresenterMock.DeveTerApresentadoSucesso<IBuscarClientesPresenter, IEnumerable<ClienteAggregate>>(listaVazia);
@@ -49,13 +53,29 @@ namespace Tests.Application.Cadastros.Cliente
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             _fixture.ClienteGatewayMock.AoObterTodos().LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
-            await _fixture.BuscarClientesUseCase.ExecutarAsync(_fixture.ClienteGatewayMock.Object, _fixture.BuscarClientesPresenterMock.Object);
+            await _fixture.BuscarClientesUseCase.ExecutarAsync(ator, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientesPresenterMock.Object);
 
             // Assert
             _fixture.BuscarClientesPresenterMock.DeveTerApresentadoErro<IBuscarClientesPresenter, IEnumerable<ClienteAggregate>>("Erro interno do servidor.", Shared.Enums.ErrorType.UnexpectedError);
+            _fixture.BuscarClientesPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarClientesPresenter, IEnumerable<ClienteAggregate>>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente (não administrador) tenta listar clientes")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaListarClientes()
+        {
+            // Arrange
+            var clienteId = Guid.NewGuid();
+            var ator = new AtorBuilder().ComoCliente(clienteId).Build();
+
+            // Act
+            await _fixture.BuscarClientesUseCase.ExecutarAsync(ator, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientesPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarClientesPresenterMock.DeveTerApresentadoErro<IBuscarClientesPresenter, IEnumerable<ClienteAggregate>>("Acesso negado. Somente administradores podem listar clientes.", Shared.Enums.ErrorType.NotAllowed);
             _fixture.BuscarClientesPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarClientesPresenter, IEnumerable<ClienteAggregate>>();
         }
     }
