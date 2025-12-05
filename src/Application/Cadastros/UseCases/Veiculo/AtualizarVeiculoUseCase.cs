@@ -24,7 +24,8 @@ namespace Application.Cadastros.UseCases
                 // Verificar permissão de acesso
                 if (!ator.PodeAcessarVeiculo(veiculo))
                 {
-                    throw new DomainException("Acesso negado ao veículo.", ErrorType.NotAllowed);
+                    presenter.ApresentarErro("Acesso negado ao veículo.", ErrorType.NotAllowed);
+                    return;
                 }
 
                 veiculo.Atualizar(modelo, marca, cor, ano, tipoVeiculo);
