@@ -1,7 +1,6 @@
 using API.Dtos;
 using API.Presenters.Cadastro.Veiculo;
 using Application.Cadastros.Dtos;
-using Infrastructure.Authentication.AtorFactories;
 using Infrastructure.Database;
 using Infrastructure.Handlers.Cadastros;
 using Infrastructure.Repositories.Cadastros;
