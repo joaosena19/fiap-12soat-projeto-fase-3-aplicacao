@@ -6,15 +6,17 @@ namespace API.Endpoints;
 
 public abstract class BaseController : ControllerBase
 {
-    protected Ator Ator { get; private set; } = null!;
-
-    protected BaseController()
+    /// <summary>
+    /// Busca o ator atual baseado no token JWT
+    /// </summary>
+    /// <returns>Ator atual autenticado</returns>
+    protected Ator BuscarAtorAtual()
     {
         var authHeader = Request.Headers["Authorization"].ToString();
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
-            return;
-
+            throw new UnauthorizedAccessException("Token de autorização é obrigatório");
+        
         var token = authHeader.Replace("Bearer ", "");
-        Ator = AtorJwtFactory.CriarPorTokenJwt(token);
+        return AtorJwtFactory.CriarPorTokenJwt(token);
     }
 }
