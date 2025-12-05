@@ -142,11 +142,13 @@ namespace API.Endpoints.Cadastro
         /// <returns>Veículo atualizado com sucesso</returns>
         /// <response code="200">Veículo atualizado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Veículo não encontrado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(RetornoVeiculoDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Put(Guid id, [FromBody] AtualizarVeiculoDto dto)
@@ -154,8 +156,9 @@ namespace API.Endpoints.Cadastro
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new AtualizarVeiculoPresenter();
             var handler = new VeiculoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.AtualizarVeiculoAsync(Ator, id, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, presenter);
+            await handler.AtualizarVeiculoAsync(ator, id, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
     }
