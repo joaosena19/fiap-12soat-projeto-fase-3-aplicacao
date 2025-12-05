@@ -129,5 +129,29 @@ namespace Tests.Application.OrdemServico
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores podem gerenciar ordens de serviço.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
         }
+
+        [Fact(DisplayName = "Deve apresentar sucesso quando sistema (webhook) altera status da ordem de serviço")]
+        [Trait("UseCase", "AlterarStatus")]
+        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoSistemaAlteraStatus()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoSistema().Build();
+            var ordemServico = new OrdemServicoBuilder().ComOrcamento().Build();
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.OrdemServicoGatewayMock.AoAtualizar().Retorna(ordemServico);
+
+            // Act
+            await _fixture.AlterarStatusUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                StatusOrdemServicoEnum.EmExecucao,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoSucesso();
+            _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoErro();
+        }
     }
 }

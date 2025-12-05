@@ -19,9 +19,12 @@ public class Ator
 
     public static Ator Cliente(Guid usuarioId, Guid clienteId) => new(usuarioId, clienteId, [RoleEnum.Cliente]);
 
+    public static Ator Sistema() => new(Guid.Empty, null, [RoleEnum.Sistema]);
+
     public static Ator ComRoles(Guid usuarioId, Guid? clienteId, List<RoleEnum> roles) => new(usuarioId, clienteId, roles);
 
     // Métodos de validação básicos
     public bool PodeGerenciarSistema() => Roles.Contains(RoleEnum.Administrador);
     public bool EhCliente() => Roles.Contains(RoleEnum.Cliente);
+    public bool PodeAcionarWebhooks() => Roles.Contains(RoleEnum.Sistema);
 }

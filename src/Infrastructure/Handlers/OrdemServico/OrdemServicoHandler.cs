@@ -116,13 +116,5 @@ namespace Infrastructure.Handlers.OrdemServico
             var useCase = new AlterarStatusUseCase();
             await useCase.ExecutarAsync(ator, ordemServicoId, status, gateway, presenter);
         }
-
-        public async Task WebhookAlterarStatusAsync(Guid ordemServicoId, StatusOrdemServicoEnum status, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
-        {
-            var useCase = new AlterarStatusUseCase();
-            // Para webhooks, vamos criar um ator administrador temporário pois é um sistema externo autorizado
-            var ator = Ator.Administrador(Guid.Empty);
-            await useCase.ExecutarAsync(ator, ordemServicoId, status, gateway, presenter);
-        }
     }
 }

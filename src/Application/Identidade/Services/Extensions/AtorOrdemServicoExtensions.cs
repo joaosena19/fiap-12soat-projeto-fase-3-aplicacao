@@ -38,11 +38,11 @@ public static class AtorOrdemServicoExtensions
     }
 
     /// <summary>
-    /// Somente administrador
+    /// Somente administrador ou sistema (webhooks)
     /// </summary>
     public static bool PodeAtualizarStatusOrdem(this Ator ator)
     {
-        return ator.PodeGerenciarSistema();
+        return ator.PodeGerenciarSistema() || ator.PodeAcionarWebhooks();
     }
 
     /// <summary>

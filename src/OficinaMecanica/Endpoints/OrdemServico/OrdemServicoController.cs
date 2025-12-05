@@ -562,8 +562,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = Application.Identidade.Services.Ator.Sistema();
 
-            await handler.WebhookAlterarStatusAsync(dto.Id, dto.Status, gateway, presenter);
+            await handler.AlterarStatusAsync(ator, dto.Id, dto.Status, gateway, presenter);
             return presenter.ObterResultado();
         }
     }

@@ -29,14 +29,27 @@ namespace Tests.Application.SharedHelpers
             return this;
         }
 
+        public AtorBuilder ComoSistema()
+        {
+            _role = RoleEnum.Sistema;
+            _clienteId = null;
+            return this;
+        }
+
         public Ator Build()
         {
             if (_role == RoleEnum.Cliente && !_clienteId.HasValue)
                 _clienteId = Guid.NewGuid();
 
-            return _role == RoleEnum.Administrador 
-                ? Ator.Administrador(_userId) 
-                : Ator.Cliente(_userId, _clienteId!.Value);
+            return _role switch
+            {
+                RoleEnum.Administrador => Ator.Administrador(_userId),
+                RoleEnum.Cliente => Ator.Cliente(_userId, _clienteId!.Value),
+                RoleEnum.Sistema => Ator.Sistema(),
+                _ => throw new ArgumentException($"Role não suportada: {_role}")
+            };
         }
+
+
     }
 }

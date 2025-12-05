@@ -14,7 +14,7 @@ public class AlterarStatusUseCase
     {
         try
         {
-            if (!ator.PodeGerenciarOrdemServico())
+            if (!ator.PodeAtualizarStatusOrdem())
             {
                 presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar ordens de serviço.", ErrorType.NotAllowed);
                 return;
