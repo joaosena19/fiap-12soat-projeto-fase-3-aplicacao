@@ -28,17 +28,20 @@ namespace API.Endpoints.Cadastro
         /// </summary>
         /// <returns>Lista de veículos</returns>
         /// <response code="200">Lista de veículos retornada com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<RetornoVeiculoDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get()
         {
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarVeiculosPresenter();
             var handler = new VeiculoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.BuscarVeiculosAsync(veiculoGateway, presenter);
+            await handler.BuscarVeiculosAsync(ator, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 

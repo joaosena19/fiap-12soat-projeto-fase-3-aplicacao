@@ -333,6 +333,33 @@ namespace Tests.Integration.Cadastros
             veiculos.Should().BeEmpty();
         }
 
+        [Fact(DisplayName = "GET deve retornar 403 Forbidden quando usuário não é admin")]
+        [Trait("Metodo", "Get")]
+        public async Task Get_Deve_Retornar403Forbidden_QuandoUsuarioNaoEhAdmin()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar cliente
+            var cpfValido = DocumentoHelper.GerarCpfValido();
+            var clienteDto = new { Nome = "Cliente Teste", DocumentoIdentificador = cpfValido };
+            var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var clienteCriado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpfValido);
+            clienteCriado.Should().NotBeNull();
+
+            // Criar cliente autenticado (não admin)
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteCriado!.Id);
+
+            // Act - Tentar listar todos os veículos como cliente (não admin)
+            var response = await clienteAuthenticatedClient.GetAsync("/api/cadastros/veiculos");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "GET /{id} deve retornar 200 OK e veículo específico")]
         [Trait("Metodo", "GetById")]
         public async Task GetById_Deve_Retornar200OK_E_VeiculoEspecifico()

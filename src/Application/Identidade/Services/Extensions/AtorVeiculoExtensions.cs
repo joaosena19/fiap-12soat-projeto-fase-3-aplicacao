@@ -39,4 +39,12 @@ public static class AtorVeiculoExtensions
     {
         return ator.PodeGerenciarSistema() || ator.ClienteId == clienteId;
     }
+
+    /// <summary>
+    /// Somente administrador pode listar todos os veículos
+    /// </summary>
+    public static bool PodeListarTodosVeiculos(this Ator ator)
+    {
+        return ator.PodeGerenciarSistema();
+    }
 }
