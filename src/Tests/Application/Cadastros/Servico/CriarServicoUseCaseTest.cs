@@ -1,7 +1,9 @@
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 using FluentAssertions;
 using Shared.Enums;
 using Tests.Application.Cadastros.Servico.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using ServicoAggregate = Domain.Cadastros.Aggregates.Servico;
@@ -17,11 +19,12 @@ namespace Tests.Application.Cadastros.Servico
             _fixture = new ServicoTestFixture();
         }
 
-        [Fact(DisplayName = "Deve criar serviço com sucesso quando não existir serviço com mesmo nome")]
+        [Fact(DisplayName = "Deve criar serviço com sucesso quando é administrador")]
         [Trait("UseCase", "CriarServico")]
-        public async Task ExecutarAsync_DeveCriarServicoComSucesso_QuandoNaoExistirServicoComMesmoNome()
+        public async Task ExecutarAsync_DeveCriarServicoComSucesso_QuandoEhAdministrador()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoEsperado = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(150.00m).Build();
             ServicoAggregate? servicoCriado = null;
 
@@ -30,7 +33,7 @@ namespace Tests.Application.Cadastros.Servico
 
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
-                servicoEsperado.Nome.Valor, servicoEsperado.Preco.Valor,
+                ator, servicoEsperado.Nome.Valor, servicoEsperado.Preco.Valor,
                 _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
 
             // Assert
@@ -42,11 +45,30 @@ namespace Tests.Application.Cadastros.Servico
             _fixture.CriarServicoPresenterMock.NaoDeveTerApresentadoErro<ICriarServicoPresenter, ServicoAggregate>();
         }
 
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta criar serviço")]
+        [Trait("UseCase", "CriarServico")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaCriarServico()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var servicoEsperado = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(150.00m).Build();
+
+            // Act
+            await _fixture.CriarServicoUseCase.ExecutarAsync(
+                ator, servicoEsperado.Nome.Valor, servicoEsperado.Preco.Valor,
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.CriarServicoPresenterMock.DeveTerApresentadoErro<ICriarServicoPresenter, ServicoAggregate>("Acesso negado. Apenas administradores podem gerenciar serviços.", ErrorType.NotAllowed);
+            _fixture.CriarServicoPresenterMock.NaoDeveTerApresentadoSucesso<ICriarServicoPresenter, ServicoAggregate>();
+        }
+
         [Fact(DisplayName = "Deve apresentar erro de conflito quando já existir serviço com mesmo nome")]
         [Trait("UseCase", "CriarServico")]
         public async Task ExecutarAsync_DeveApresentarErroConflito_QuandoJaExistirServicoComMesmoNome()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoExistente = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(100m).Build();
             var servicoParaTentar = new ServicoBuilder().ComNome(servicoExistente.Nome.Valor).ComPreco(150m).Build();
 
@@ -54,7 +76,7 @@ namespace Tests.Application.Cadastros.Servico
 
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
-                servicoParaTentar.Nome.Valor, servicoParaTentar.Preco.Valor,
+                ator, servicoParaTentar.Nome.Valor, servicoParaTentar.Preco.Valor,
                 _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
 
             // Assert
@@ -67,6 +89,7 @@ namespace Tests.Application.Cadastros.Servico
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var nomeInvalido = "";
             var precoValido = 100m;
 
@@ -74,7 +97,7 @@ namespace Tests.Application.Cadastros.Servico
 
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
-                nomeInvalido, precoValido,
+                ator, nomeInvalido, precoValido,
                 _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
 
             // Assert
@@ -87,6 +110,7 @@ namespace Tests.Application.Cadastros.Servico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoParaCriar = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(150m).Build();
 
             _fixture.ServicoGatewayMock.AoObterPorNome(servicoParaCriar.Nome.Valor).NaoRetornaNada();
@@ -94,7 +118,7 @@ namespace Tests.Application.Cadastros.Servico
 
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
-                servicoParaCriar.Nome.Valor, servicoParaCriar.Preco.Valor,
+                ator, servicoParaCriar.Nome.Valor, servicoParaCriar.Preco.Valor,
                 _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
 
             // Assert
