@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using Tests.Helpers;
+using ClienteAggregate = Domain.Cadastros.Aggregates.Cliente;
 
 namespace Tests.Integration.Cadastros
 {
@@ -418,6 +419,28 @@ namespace Tests.Integration.Cadastros
             clienteEntity.DocumentoIdentificador.Valor.Should().NotContain(".");
             clienteEntity.DocumentoIdentificador.Valor.Should().NotContain("-");
             clienteEntity.DocumentoIdentificador.TipoDocumento.Should().Be(TipoDocumentoEnum.CPF);
+        }
+
+        [Fact(DisplayName = "GET /documento/{documento} deve retornar 403 quando cliente tenta buscar dados de outro cliente")]
+        [Trait("Metodo", "GetByDocumento")]
+        public async Task GetByDocumento_Deve_Retornar403_QuandoClienteTentaBuscarDadosDeOutroCliente()
+        {
+            // Arrange - Criar um cliente no banco de dados
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var cpfOutroCliente = DocumentoHelper.GerarCpfValido();
+            var clienteEntity = ClienteAggregate.Criar("Cliente Outro", cpfOutroCliente);
+            await context.Clientes.AddAsync(clienteEntity);
+            await context.SaveChangesAsync();
+
+            // Act - Cliente diferente tenta buscar os dados do primeiro cliente
+            var clienteAtualId = Guid.NewGuid(); // ID de um cliente diferente
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteAtualId);
+
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/cadastros/clientes/documento/{cpfOutroCliente}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
     }
 }

@@ -70,10 +70,12 @@ namespace API.Endpoints.Cadastro
         /// <param name="documento">CPF ou CNPJ, com ou sem formatação</param>
         /// <returns>Cliente encontrado</returns>
         /// <response code="200">Cliente encontrado com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Cliente não encontrado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("documento/{documento}")]
         [ProducesResponseType(typeof(RetornoClienteDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetByDocumento(string documento)
@@ -84,8 +86,9 @@ namespace API.Endpoints.Cadastro
             var gateway = new ClienteRepository(_context);
             var presenter = new BuscarClientePorDocumentoPresenter();
             var handler = new ClienteHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.BuscarClientePorDocumentoAsync(documentoUnencoded, gateway, presenter);
+            await handler.BuscarClientePorDocumentoAsync(ator, documentoUnencoded, gateway, presenter);
             return presenter.ObterResultado();
         }
 

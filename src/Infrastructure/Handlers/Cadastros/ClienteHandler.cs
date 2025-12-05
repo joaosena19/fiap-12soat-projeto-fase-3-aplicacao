@@ -31,10 +31,10 @@ namespace Infrastructure.Handlers.Cadastros
             await useCase.ExecutarAsync(id, gateway, presenter);
         }
 
-        public async Task BuscarClientePorDocumentoAsync(string documento, IClienteGateway gateway, IBuscarClientePorDocumentoPresenter presenter)
+        public async Task BuscarClientePorDocumentoAsync(Ator ator, string documento, IClienteGateway gateway, IBuscarClientePorDocumentoPresenter presenter)
         {
             var useCase = new BuscarClientePorDocumentoUseCase();
-            await useCase.ExecutarAsync(documento, gateway, presenter);
+            await useCase.ExecutarAsync(ator, documento, gateway, presenter);
         }
     }
 }
