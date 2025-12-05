@@ -14,13 +14,13 @@ namespace Application.Cadastros.UseCases
         {
             try
             {
-                var veiculo = await gateway.ObterPorIdAsync(id);               
+                var veiculo = await gateway.ObterPorIdAsync(id);
                 if (veiculo == null)
                 {
                     presenter.ApresentarErro("Veículo não encontrado.", ErrorType.ResourceNotFound);
                     return;
                 }
-                
+
                 // Verificar permissão de acesso
                 if (!ator.PodeAcessarVeiculo(veiculo))
                 {
