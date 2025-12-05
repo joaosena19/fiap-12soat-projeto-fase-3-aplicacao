@@ -681,6 +681,53 @@ namespace Tests.Integration.Cadastros
             secondResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
         }
 
+        [Fact(DisplayName = "POST deve retornar 403 Forbidden quando cliente tenta criar veículo para outro cliente")]
+        [Trait("Metodo", "Post")]
+        public async Task Post_Deve_Retornar403Forbidden_QuandoClienteTentaCriarVeiculoParaOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar dois clientes
+            var cpf1 = DocumentoHelper.GerarCpfValido();
+            var cpf2 = DocumentoHelper.GerarCpfValido();
+            var cliente1Dto = new { Nome = "Cliente Proprietário", DocumentoIdentificador = cpf1 };
+            var cliente2Dto = new { Nome = "Cliente Outro", DocumentoIdentificador = cpf2 };
+            
+            var cliente1Response = await _client.PostAsJsonAsync("/api/cadastros/clientes", cliente1Dto);
+            var cliente2Response = await _client.PostAsJsonAsync("/api/cadastros/clientes", cliente2Dto);
+            
+            cliente1Response.StatusCode.Should().Be(HttpStatusCode.Created);
+            cliente2Response.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1 = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpf1);
+            var cliente2 = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpf2);
+            
+            cliente1.Should().NotBeNull();
+            cliente2.Should().NotBeNull();
+
+            // Criar cliente autenticado como cliente1
+            var cliente1AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente1!.Id);
+
+            var dto = new 
+            { 
+                ClienteId = cliente2!.Id, // Tentar criar veículo para outro cliente
+                Placa = "FRB4321", 
+                Modelo = "Palio", 
+                Marca = "Fiat", 
+                Cor = "Verde", 
+                Ano = 2019, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+
+            // Act - Tentar criar veículo para outro cliente
+            var response = await cliente1AuthenticatedClient.PostAsJsonAsync("/api/cadastros/veiculos", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "GET /placa/{placa} deve encontrar veículo independente do case da placa")]
         [Trait("Case insenstive", "Placa")]
         public async Task GetByPlaca_DeveEncontrarVeiculoIndependenteDoCase()

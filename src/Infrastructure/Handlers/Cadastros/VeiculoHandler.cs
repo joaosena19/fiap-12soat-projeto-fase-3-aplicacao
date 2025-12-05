@@ -8,11 +8,11 @@ namespace Infrastructure.Handlers.Cadastros
 {
     public class VeiculoHandler
     {
-        public async Task CriarVeiculoAsync(Guid clienteId, string placa, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,
+        public async Task CriarVeiculoAsync(Ator ator, Guid clienteId, string placa, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,
             IVeiculoGateway veiculoGateway, IClienteGateway clienteGateway, ICriarVeiculoPresenter presenter)
         {
             var useCase = new CriarVeiculoUseCase();
-            await useCase.ExecutarAsync(clienteId, placa, modelo, marca, cor, ano, tipoVeiculo, veiculoGateway, clienteGateway, presenter);
+            await useCase.ExecutarAsync(ator, clienteId, placa, modelo, marca, cor, ano, tipoVeiculo, veiculoGateway, clienteGateway, presenter);
         }
 
         public async Task AtualizarVeiculoAsync(Ator ator, Guid id, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,

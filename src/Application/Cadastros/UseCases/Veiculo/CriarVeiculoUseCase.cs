@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Domain.Cadastros.Aggregates;
 using Domain.Cadastros.Enums;
 using Shared.Exceptions;
@@ -9,11 +11,17 @@ namespace Application.Cadastros.UseCases
 {
     public class CriarVeiculoUseCase
     {
-        public async Task ExecutarAsync(Guid clienteId, string placa, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo, 
+        public async Task ExecutarAsync(Ator ator, Guid clienteId, string placa, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo, 
             IVeiculoGateway veiculoGateway, IClienteGateway clienteGateway, ICriarVeiculoPresenter presenter)
         {
             try
             {
+                if (!ator.PodeCriarVeiculoParaCliente(clienteId))
+                {
+                    presenter.ApresentarErro("Acesso negado.", ErrorType.NotAllowed);
+                    return;
+                }
+
                 var veiculoExistente = await veiculoGateway.ObterPorPlacaAsync(placa);
                 if (veiculoExistente != null)
                 {

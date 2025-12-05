@@ -128,11 +128,13 @@ namespace API.Endpoints.Cadastro
         /// <returns>Veículo criado com sucesso</returns>
         /// <response code="201">Veículo criado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="409">Placa já cadastrada</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost]
         [ProducesResponseType(typeof(RetornoVeiculoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Post([FromBody] CriarVeiculoDto dto)
@@ -143,7 +145,7 @@ namespace API.Endpoints.Cadastro
             var handler = new VeiculoHandler();
             var ator = BuscarAtorAtual();
             
-            await handler.CriarVeiculoAsync(dto.ClienteId, dto.Placa, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, clienteGateway, presenter);
+            await handler.CriarVeiculoAsync(ator, dto.ClienteId, dto.Placa, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, clienteGateway, presenter);
             return presenter.ObterResultado();
         }
 
