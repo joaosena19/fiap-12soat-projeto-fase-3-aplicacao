@@ -73,10 +73,12 @@ namespace API.Endpoints.Cadastro
         /// <param name="placa">Placa do veículo</param>
         /// <returns>Veículo encontrado</returns>
         /// <response code="200">Veículo encontrado com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Veículo não encontrado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("placa/{placa}")]
         [ProducesResponseType(typeof(RetornoVeiculoDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetByPlaca(string placa)
@@ -84,8 +86,9 @@ namespace API.Endpoints.Cadastro
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarVeiculoPorPlacaPresenter();
             var handler = new VeiculoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.BuscarVeiculoPorPlacaAsync(placa, veiculoGateway, presenter);
+            await handler.BuscarVeiculoPorPlacaAsync(ator, placa, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -132,6 +135,7 @@ namespace API.Endpoints.Cadastro
             var clienteGateway = new ClienteRepository(_context);
             var presenter = new CriarVeiculoPresenter();
             var handler = new VeiculoHandler();
+            var ator = BuscarAtorAtual();
             
             await handler.CriarVeiculoAsync(dto.ClienteId, dto.Placa, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, clienteGateway, presenter);
             return presenter.ObterResultado();
@@ -155,7 +159,7 @@ namespace API.Endpoints.Cadastro
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Put(Guid id, [FromBody] AtualizarVeiculoDto dto)
-        {           
+        {
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new AtualizarVeiculoPresenter();
             var handler = new VeiculoHandler();

@@ -510,6 +510,58 @@ namespace Tests.Integration.Cadastros
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
+        [Fact(DisplayName = "GET /placa/{placa} deve retornar 403 Forbidden quando cliente tenta acessar veículo de outro cliente")]
+        [Trait("Metodo", "GetByPlaca")]
+        public async Task GetByPlaca_Deve_Retornar403Forbidden_QuandoClienteTentaAcessarVeiculoDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar primeiro cliente e autenticar como este cliente para criar veículo
+            var clienteDto1 = new { Nome = "Cliente 1 Placa", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var adminClient = _factory.CreateAuthenticatedClient(); // cliente admin
+            var clienteResponse1 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto1);
+            clienteResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto1.DocumentoIdentificador);
+            cliente1Criado.Should().NotBeNull();
+
+            // Autenticar como primeiro cliente para criar veículo para si mesmo
+            var cliente1AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente1Criado!.Id);
+
+            var veiculoDto = new 
+            { 
+                ClienteId = cliente1Criado.Id,
+                Placa = "DEF5678", 
+                Modelo = "PlacaTest", 
+                Marca = "Test", 
+                Cor = "Blue", 
+                Ano = 2021, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+
+            var createVeiculoResponse = await cliente1AuthenticatedClient.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            createVeiculoResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            // Criar segundo cliente e autenticar como este cliente
+            var clienteDto2 = new { Nome = "Cliente 2 Placa", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var clienteResponse2 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto2);
+            clienteResponse2.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente2Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto2.DocumentoIdentificador);
+            cliente2Criado.Should().NotBeNull();
+
+            // Autenticar como segundo cliente
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2Criado!.Id);
+
+            // Act - tentar acessar veículo do primeiro cliente pela placa
+            var response = await cliente2AuthenticatedClient.GetAsync("/api/cadastros/veiculos/placa/DEF5678");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "POST deve salvar placa sempre em uppercase independente do input")]
         [Trait("Case insenstive", "Placa")]
         public async Task Post_DeveSalvarPlacaSempreEmUppercase()
