@@ -1,12 +1,14 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 
 namespace Application.Cadastros.UseCases
 {
     public class BuscarClientePorIdUseCase
     {
-        public async Task ExecutarAsync(Guid id, IClienteGateway gateway, IBuscarClientePorIdPresenter presenter)
+        public async Task ExecutarAsync(Ator ator, Guid id, IClienteGateway gateway, IBuscarClientePorIdPresenter presenter)
         {
             try
             {
@@ -14,6 +16,12 @@ namespace Application.Cadastros.UseCases
                 if (cliente == null)
                 {
                     presenter.ApresentarErro("Cliente não encontrado.", ErrorType.ResourceNotFound);
+                    return;
+                }
+
+                if (!ator.PodeAcessarCliente(cliente))
+                {
+                    presenter.ApresentarErro("Acesso negado. Somente administradores ou o próprio cliente podem acessar os dados.", ErrorType.NotAllowed);
                     return;
                 }
 

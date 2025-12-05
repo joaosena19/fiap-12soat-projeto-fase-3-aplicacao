@@ -442,5 +442,27 @@ namespace Tests.Integration.Cadastros
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
+
+        [Fact(DisplayName = "GET /{id} deve retornar 403 quando cliente tenta buscar dados de outro cliente")]
+        [Trait("Metodo", "GetById")]
+        public async Task GetById_Deve_Retornar403_QuandoClienteTentaBuscarDadosDeOutroCliente()
+        {
+            // Arrange - Criar um cliente no banco de dados
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var cpfOutroCliente = DocumentoHelper.GerarCpfValido();
+            var clienteEntity = ClienteAggregate.Criar("Cliente Outro", cpfOutroCliente);
+            await context.Clientes.AddAsync(clienteEntity);
+            await context.SaveChangesAsync();
+
+            // Act - Cliente diferente tenta buscar os dados do primeiro cliente pelo ID
+            var clienteAtualId = Guid.NewGuid(); // ID de um cliente diferente
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteAtualId);
+
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/cadastros/clientes/{clienteEntity.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
     }
 }
