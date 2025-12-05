@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 using Shared.Exceptions;
 
@@ -7,10 +9,16 @@ namespace Application.Estoque.UseCases;
 
 public class VerificarDisponibilidadeUseCase
 {
-    public async Task ExecutarAsync(Guid id, int quantidadeRequisitada, IItemEstoqueGateway gateway, IVerificarDisponibilidadePresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid id, int quantidadeRequisitada, IItemEstoqueGateway gateway, IVerificarDisponibilidadePresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarEstoque())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
+                return;
+            }
+
             var item = await gateway.ObterPorIdAsync(id);
             if (item == null)
             {

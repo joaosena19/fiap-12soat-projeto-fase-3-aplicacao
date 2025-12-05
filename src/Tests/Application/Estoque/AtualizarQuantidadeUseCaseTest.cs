@@ -2,6 +2,7 @@ using Application.Contracts.Presenters;
 using FluentAssertions;
 using Shared.Enums;
 using Tests.Application.Estoque.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using ItemEstoqueAggregate = Domain.Estoque.Aggregates.ItemEstoque;
@@ -22,6 +23,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveAtualizarQuantidadeComSucesso_QuandoItemExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder()
                 .ComQuantidade(10)
                 .Build();
@@ -36,6 +38,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.AtualizarQuantidadeUseCase.ExecutarAsync(
+                ator,
                 itemExistente.Id,
                 novaQuantidade,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -55,12 +58,14 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErro_QuandoItemNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemId = Guid.NewGuid();
             var novaQuantidade = 20;
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).NaoRetornaNada();
 
             // Act
             await _fixture.AtualizarQuantidadeUseCase.ExecutarAsync(
+                ator,
                 itemId,
                 novaQuantidade,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -76,6 +81,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder().Build();
             var quantidadeInvalida = -5; // Quantidade inválida para provocar DomainException
 
@@ -83,6 +89,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.AtualizarQuantidadeUseCase.ExecutarAsync(
+                ator,
                 itemExistente.Id,
                 quantidadeInvalida,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -98,6 +105,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder().Build();
             var novaQuantidade = 30;
 
@@ -106,6 +114,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.AtualizarQuantidadeUseCase.ExecutarAsync(
+                ator,
                 itemExistente.Id,
                 novaQuantidade,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -113,6 +122,28 @@ namespace Tests.Application.Estoque
 
             // Assert
             _fixture.AtualizarQuantidadePresenterMock.DeveTerApresentadoErro<IAtualizarQuantidadePresenter, ItemEstoqueAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.AtualizarQuantidadePresenterMock.NaoDeveTerApresentadoSucesso<IAtualizarQuantidadePresenter, ItemEstoqueAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro de acesso negado quando cliente tentar atualizar quantidade do estoque")]
+        [Trait("UseCase", "AtualizarQuantidade")]
+        public async Task ExecutarAsync_DeveApresentarErroAcessoNegado_QuandoClienteTentarAtualizarQuantidadeEstoque()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var itemId = Guid.NewGuid();
+            var novaQuantidade = 30;
+
+            // Act
+            await _fixture.AtualizarQuantidadeUseCase.ExecutarAsync(
+                ator,
+                itemId,
+                novaQuantidade,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.AtualizarQuantidadePresenterMock.Object);
+
+            // Assert
+            _fixture.AtualizarQuantidadePresenterMock.DeveTerApresentadoErro<IAtualizarQuantidadePresenter, ItemEstoqueAggregate>("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
             _fixture.AtualizarQuantidadePresenterMock.NaoDeveTerApresentadoSucesso<IAtualizarQuantidadePresenter, ItemEstoqueAggregate>();
         }
     }

@@ -1,16 +1,24 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 using Shared.Exceptions;
 using Shared.Enums;
+using Application.Identidade.Services.Extensions;
 
 namespace Application.Estoque.UseCases;
 
 public class AtualizarQuantidadeUseCase
 {
-    public async Task ExecutarAsync(Guid id, int quantidade, IItemEstoqueGateway gateway, IAtualizarQuantidadePresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid id, int quantidade, IItemEstoqueGateway gateway, IAtualizarQuantidadePresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarEstoque())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
+                return;
+            }
+
             var itemExistente = await gateway.ObterPorIdAsync(id);
             if (itemExistente == null)
             {
