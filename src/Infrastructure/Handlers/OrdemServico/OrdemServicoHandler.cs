@@ -57,10 +57,10 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ordemServicoId, itemIncluidoId, gateway, presenter);
         }
 
-        public async Task CancelarAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task CancelarAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new CancelarOrdemServicoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, gateway, presenter);
         }
 
         public async Task IniciarDiagnosticoAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)

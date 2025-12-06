@@ -1223,6 +1223,58 @@ namespace Tests.Integration.OrdemServico
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/cancelar deve retornar status 403 quando usuário não for administrador")]
+        [Trait("Method", "Cancelar")]
+        public async Task Cancelar_ComUsuarioNaoAdministrador_DeveRetornarStatus403()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar cliente de teste
+            var clienteDto = new CriarClienteDto
+            {
+                Nome = "Cliente Cancelar Forbidden Test",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+
+            var adminClient = _factory.CreateAuthenticatedClient();
+            var clienteResponse = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.EnsureSuccessStatusCode();
+            var cliente = await clienteResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo de teste
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = cliente!.Id,
+                Placa = "CAN4567",
+                Modelo = "Civic Forbidden",
+                Marca = "Honda",
+                Cor = "Azul",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+
+            var veiculoResponse = await adminClient.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            veiculoResponse.EnsureSuccessStatusCode();
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await adminClient.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            ordemResponse.EnsureSuccessStatusCode();
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Criar cliente autenticado (não admin)
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente.Id);
+
+            // Act
+            var response = await clienteClient.PostAsync($"/api/ordens-servico/{ordem!.Id}/cancelar", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
 
         #region Método IniciarDiagnostico Tests

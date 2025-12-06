@@ -266,11 +266,13 @@ namespace API.Endpoints.OrdemServico
         /// <param name="id">ID da ordem de serviço</param>
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Ordem de serviço cancelada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores podem cancelar ordens de serviço</response>
         /// <response code="400">Dados inválidos fornecidos</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("{id}/cancelar")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Cancelar(Guid id)
@@ -278,8 +280,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.CancelarAsync(id, gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.CancelarAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
