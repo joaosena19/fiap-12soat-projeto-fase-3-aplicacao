@@ -2759,5 +2759,97 @@ namespace Tests.Integration.OrdemServico
         }
 
         #endregion
+
+        #region Testes de Autorização para Busca
+
+        [Fact(DisplayName = "GET /api/ordens-servico/{id} deve retornar 403 quando cliente tenta buscar ordem de serviço de outro cliente")]
+        [Trait("Method", "BuscarOrdemServicoPorId")]
+        [Trait("Authorization", "403")]
+        public async Task BuscarOrdemServicoPorId_ComClienteTentandoBuscarOrdemServicoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono da Busca",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "BUS1235",
+                Modelo = "Fusion Test",
+                Marca = "Ford",
+                Cor = "Azul",
+                Ano = 2021,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Cliente diferente (não dono) tenta buscar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta buscar ordem de serviço
+            var response = await outroClienteAuthenticatedClient.GetAsync($"/api/ordens-servico/{ordem!.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /api/ordens-servico/codigo/{codigo} deve retornar 403 quando cliente tenta buscar ordem de serviço de outro cliente")]
+        [Trait("Method", "BuscarOrdemServicoPorCodigo")]
+        [Trait("Authorization", "403")]
+        public async Task BuscarOrdemServicoPorCodigo_ComClienteTentandoBuscarOrdemServicoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono da Busca 2",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "COD5678",
+                Modelo = "Mustang Test",
+                Marca = "Ford",
+                Cor = "Vermelho",
+                Ano = 2020,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Cliente diferente (não dono) tenta buscar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta buscar ordem de serviço por código
+            var response = await outroClienteAuthenticatedClient.GetAsync($"/api/ordens-servico/codigo/{ordem!.Codigo}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        #endregion
     }
 }

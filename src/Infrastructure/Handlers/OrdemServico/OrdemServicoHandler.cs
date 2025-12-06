@@ -15,16 +15,16 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(gateway, presenter);
         }
 
-        public async Task BuscarOrdemServicoPorIdAsync(Guid id, IOrdemServicoGateway gateway, IBuscarOrdemServicoPorIdPresenter presenter)
+        public async Task BuscarOrdemServicoPorIdAsync(Ator ator, Guid id, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IBuscarOrdemServicoPorIdPresenter presenter)
         {
             var useCase = new BuscarOrdemServicoPorIdUseCase();
-            await useCase.ExecutarAsync(id, gateway, presenter);
+            await useCase.ExecutarAsync(ator, id, gateway, veiculoGateway, presenter);
         }
 
-        public async Task BuscarOrdemServicoPorCodigoAsync(string codigo, IOrdemServicoGateway gateway, IBuscarOrdemServicoPorCodigoPresenter presenter)
+        public async Task BuscarOrdemServicoPorCodigoAsync(Ator ator, string codigo, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IBuscarOrdemServicoPorCodigoPresenter presenter)
         {
             var useCase = new BuscarOrdemServicoPorCodigoUseCase();
-            await useCase.ExecutarAsync(codigo, gateway, presenter);
+            await useCase.ExecutarAsync(ator, codigo, gateway, veiculoGateway, presenter);
         }
 
         public async Task CriarOrdemServicoAsync(Guid veiculoId, IOrdemServicoGateway gateway, IVeiculoExternalService veiculoExternalService, ICriarOrdemServicoPresenter presenter)

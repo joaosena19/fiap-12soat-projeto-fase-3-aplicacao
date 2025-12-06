@@ -52,19 +52,23 @@ namespace API.Endpoints.OrdemServico
         /// <param name="id">ID da ordem de serviço</param>
         /// <returns>Ordem de serviço encontrada</returns>
         /// <response code="200">Ordem de serviço encontrada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores ou donos da ordem de serviço podem visualizá-la</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(RetornoOrdemServicoCompletaDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarOrdemServicoPorIdPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.BuscarOrdemServicoPorIdAsync(id, gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.BuscarOrdemServicoPorIdAsync(ator, id, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -74,19 +78,23 @@ namespace API.Endpoints.OrdemServico
         /// <param name="codigo">Código da ordem de serviço</param>
         /// <returns>Ordem de serviço encontrada</returns>
         /// <response code="200">Ordem de serviço encontrada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores ou donos da ordem de serviço podem visualizá-la</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("codigo/{codigo}")]
         [ProducesResponseType(typeof(RetornoOrdemServicoCompletaDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetByCodigo(string codigo)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarOrdemServicoPorCodigoPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.BuscarOrdemServicoPorCodigoAsync(codigo, gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.BuscarOrdemServicoPorCodigoAsync(ator, codigo, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
