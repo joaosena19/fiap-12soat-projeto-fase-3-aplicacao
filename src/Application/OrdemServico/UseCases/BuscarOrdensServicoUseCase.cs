@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Domain.OrdemServico.Enums;
 using Shared.Enums;
 
@@ -7,10 +9,16 @@ namespace Application.OrdemServico.UseCases;
 
 public class BuscarOrdensServicoUseCase
 {
-    public async Task ExecutarAsync(IOrdemServicoGateway gateway, IBuscarOrdensServicoPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, IOrdemServicoGateway gateway, IBuscarOrdensServicoPresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarOrdemServico())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem listar ordens de serviço.", ErrorType.NotAllowed);
+                return;
+            }
+
             var ordensServico = await gateway.ObterTodosAsync();
             
             // Filtrar

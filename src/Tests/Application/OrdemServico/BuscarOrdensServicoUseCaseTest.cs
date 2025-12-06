@@ -3,6 +3,7 @@ using Domain.OrdemServico.Enums;
 using Moq;
 using Shared.Enums;
 using Tests.Application.OrdemServico.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
@@ -18,11 +19,12 @@ namespace Tests.Application.OrdemServico
             _fixture = new OrdemServicoTestFixture();
         }
 
-        [Fact(DisplayName = "Deve apresentar sucesso quando existirem ordens de serviço valídas")]
+        [Fact(DisplayName = "Deve apresentar sucesso quando ator for administrador e existirem ordens de serviço")]
         [Trait("UseCase", "BuscarOrdensServico")]
-        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoExistiremOrdensServicoValidas()
+        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoAtorForAdministradorEExistiremOrdensServico()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordem1 = new OrdemServicoBuilder().ComStatus(StatusOrdemServicoEnum.EmExecucao).Build();
             var ordem2 = new OrdemServicoBuilder().ComStatus(StatusOrdemServicoEnum.AguardandoAprovacao).Build();
             var ordensServico = new List<OrdemServicoAggregate> { ordem1, ordem2 };
@@ -31,6 +33,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.BuscarOrdensServicoPresenterMock.Object);
 
@@ -39,15 +42,35 @@ namespace Tests.Application.OrdemServico
             _fixture.BuscarOrdensServicoPresenterMock.NaoDeveTerApresentadoErro<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>();
         }
 
-        [Fact(DisplayName = "Deve apresentar sucesso com lista vazia quando não existirem ordens de serviço")]
+        [Fact(DisplayName = "Deve apresentar NotAllowed quando ator não for administrador")]
         [Trait("UseCase", "BuscarOrdensServico")]
-        public async Task ExecutarAsync_DeveApresentarSucessoComListaVazia_QuandoNaoExistiremOrdensServico()
+        public async Task ExecutarAsync_DeveApresentarNotAllowed_QuandoAtorNaoForAdministrador()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+
+            // Act
+            await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.BuscarOrdensServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarOrdensServicoPresenterMock.DeveTerApresentadoErro<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>("Acesso negado. Apenas administradores podem listar ordens de serviço.", ErrorType.NotAllowed);
+            _fixture.BuscarOrdensServicoPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar sucesso com lista vazia quando ator for administrador e não existirem ordens")]
+        [Trait("UseCase", "BuscarOrdensServico")]
+        public async Task ExecutarAsync_DeveApresentarSucessoComListaVazia_QuandoAtorForAdministradorENaoExistiremOrdens()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             _fixture.OrdemServicoGatewayMock.AoObterTodos().RetornaListaVazia();
 
             // Act
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.BuscarOrdensServicoPresenterMock.Object);
 
@@ -56,15 +79,17 @@ namespace Tests.Application.OrdemServico
             _fixture.BuscarOrdensServicoPresenterMock.NaoDeveTerApresentadoErro<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>();
         }
 
-        [Fact(DisplayName = "Deve apresentar erro interno quando ocorrer exceção genérica")]
+        [Fact(DisplayName = "Deve apresentar erro interno quando ator for administrador e ocorrer exceção")]
         [Trait("UseCase", "BuscarOrdensServico")]
-        public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
+        public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoAtorForAdministradorEOcorrerExcecao()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             _fixture.OrdemServicoGatewayMock.AoObterTodos().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.BuscarOrdensServicoPresenterMock.Object);
 
@@ -73,11 +98,12 @@ namespace Tests.Application.OrdemServico
             _fixture.BuscarOrdensServicoPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>();
         }
 
-        [Fact(DisplayName = "Deve retornar apenas ordens de serviço com status válidos")]
+        [Fact(DisplayName = "Deve retornar apenas ordens com status válidos quando ator for administrador")]
         [Trait("UseCase", "BuscarOrdensServico")]
-        public async Task ExecutarAsync_DeveRetornarApenasOrdensComStatusValidos_QuandoExistiremOrdensComStatusVariados()
+        public async Task ExecutarAsync_DeveRetornarApenasOrdensComStatusValidos_QuandoAtorForAdministradorEExistiremOrdensComStatusVariados()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var random = new Random();
             var todosOsStatus = Enum.GetValues<StatusOrdemServicoEnum>();
             var statusProibidos = new[] { StatusOrdemServicoEnum.Finalizada, StatusOrdemServicoEnum.Entregue, StatusOrdemServicoEnum.Cancelada };
@@ -96,6 +122,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.BuscarOrdensServicoPresenterMock.Object);
 
@@ -119,11 +146,12 @@ namespace Tests.Application.OrdemServico
             _fixture.BuscarOrdensServicoPresenterMock.NaoDeveTerApresentadoErro<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>();
         }
 
-        [Fact(DisplayName = "Deve retornar ordens de serviço ordenadas por prioridade de status")]
+        [Fact(DisplayName = "Deve retornar ordens ordenadas por prioridade quando ator for administrador")]
         [Trait("UseCase", "BuscarOrdensServico")]
-        public async Task ExecutarAsync_DeveRetornarOrdensOrdenadasPorPrioridadeStatus_QuandoExistiremOrdensComStatusVariados()
+        public async Task ExecutarAsync_DeveRetornarOrdensOrdenadasPorPrioridade_QuandoAtorForAdministradorEExistiremOrdensComStatusVariados()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var random = new Random();
             var statusValidos = new[] { StatusOrdemServicoEnum.Recebida, StatusOrdemServicoEnum.EmDiagnostico, StatusOrdemServicoEnum.AguardandoAprovacao, StatusOrdemServicoEnum.EmExecucao };
             var prioridadeEsperada = new Dictionary<StatusOrdemServicoEnum, int>
@@ -147,6 +175,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.BuscarOrdensServicoPresenterMock.Object);
 

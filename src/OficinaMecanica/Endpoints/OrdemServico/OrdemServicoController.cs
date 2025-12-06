@@ -32,17 +32,20 @@ namespace API.Endpoints.OrdemServico
         /// </summary>
         /// <returns>Lista de ordens de serviço</returns>
         /// <response code="200">Lista de ordens de serviço retornada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores podem listar ordens de serviço</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<RetornoOrdemServicoCompletaDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get()
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new BuscarOrdensServicoPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.BuscarOrdensServicoAsync(gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.BuscarOrdensServicoAsync(ator, gateway, presenter);
             return presenter.ObterResultado();
         }
 

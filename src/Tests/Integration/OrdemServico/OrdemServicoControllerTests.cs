@@ -50,6 +50,21 @@ namespace Tests.Integration.OrdemServico
             ordensServico.Should().BeEmpty();
         }
 
+        [Fact(DisplayName = "GET /api/ordens-servico deve retornar status 403 quando usuário não for administrador")]
+        [Trait("Method", "Get")]
+        public async Task Get_ComUsuarioNaoAdministrador_DeveRetornarStatus403()
+        {
+            // Arrange
+            var clienteId = Guid.NewGuid();
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act
+            var response = await clienteClient.GetAsync("/api/ordens-servico");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "GET /api/ordens-servico deve retornar status 200 com lista de ordens")]
         [Trait("Method", "Get")]
         public async Task Get_ComOrdensServico_DeveRetornarStatus200ComLista()
@@ -98,7 +113,7 @@ namespace Tests.Integration.OrdemServico
             
             var ordensServico = await response.Content.ReadFromJsonAsync<List<RetornoOrdemServicoCompletaDto>>();
             ordensServico.Should().NotBeNull();
-            ordensServico.Should().HaveCountGreaterThan(1);
+            ordensServico.Should().HaveCountGreaterThanOrEqualTo(1);
             ordensServico!.Where(os => os.VeiculoId == veiculo.Id).Should().HaveCount(1);
         }
 

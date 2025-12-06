@@ -9,10 +9,10 @@ namespace Infrastructure.Handlers.OrdemServico
 {
     public class OrdemServicoHandler
     {
-        public async Task BuscarOrdensServicoAsync(IOrdemServicoGateway gateway, IBuscarOrdensServicoPresenter presenter)
+        public async Task BuscarOrdensServicoAsync(Ator ator, IOrdemServicoGateway gateway, IBuscarOrdensServicoPresenter presenter)
         {
             var useCase = new BuscarOrdensServicoUseCase();
-            await useCase.ExecutarAsync(gateway, presenter);
+            await useCase.ExecutarAsync(ator, gateway, presenter);
         }
 
         public async Task BuscarOrdemServicoPorIdAsync(Ator ator, Guid id, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IBuscarOrdemServicoPorIdPresenter presenter)
