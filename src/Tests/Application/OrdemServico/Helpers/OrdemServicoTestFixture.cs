@@ -9,6 +9,7 @@ namespace Tests.Application.OrdemServico.Helpers
     public class OrdemServicoTestFixture
     {
         public Mock<IOrdemServicoGateway> OrdemServicoGatewayMock { get; }
+        public Mock<IVeiculoGateway> VeiculoGatewayMock { get; }
         public Mock<IEstoqueExternalService> EstoqueExternalServiceMock { get; }
         public Mock<IServicoExternalService> ServicoExternalServiceMock { get; }
         public Mock<IClienteExternalService> ClienteExternalServiceMock { get; }
@@ -46,6 +47,7 @@ namespace Tests.Application.OrdemServico.Helpers
         public OrdemServicoTestFixture()
         {
             OrdemServicoGatewayMock = new Mock<IOrdemServicoGateway>();
+            VeiculoGatewayMock = new Mock<IVeiculoGateway>();
             EstoqueExternalServiceMock = new Mock<IEstoqueExternalService>();
             ServicoExternalServiceMock = new Mock<IServicoExternalService>();
             ClienteExternalServiceMock = new Mock<IClienteExternalService>();

@@ -58,7 +58,7 @@ namespace Tests.Domain.Identidade
         [InlineData("Admin")]
         [InlineData("User")]
         [InlineData("123")]
-        [InlineData("3")] // Enum não possui valor 3
+        [InlineData("4")] // Enum não possui valor 4
         [InlineData(null)]
         [Trait("Construtor", "String")]
         public void RoleConstrutor_Deve_ThrowException_Quando_StringInvalida(string? roleStringInvalida)

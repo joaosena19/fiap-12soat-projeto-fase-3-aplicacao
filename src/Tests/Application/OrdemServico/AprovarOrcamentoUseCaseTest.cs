@@ -26,6 +26,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveAprovarOrcamentoComSucesso_QuandoOrdemServicoExistirEItensEstiveremDisponiveis()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().ComOrcamento().Build();
 
             OrdemServicoAggregate? ordemServicoAtualizada = null;
@@ -34,6 +35,7 @@ namespace Tests.Application.OrdemServico
             var itemEstoque = new ItemEstoqueExternalDtoBuilder().ComId(itemIncluido.ItemEstoqueOriginalId).Build();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(new VeiculoBuilder().Build());
             _fixture.EstoqueExternalServiceMock.AoVerificarDisponibilidade(itemIncluido.ItemEstoqueOriginalId, itemIncluido.Quantidade.Valor).Retorna(true);
             _fixture.EstoqueExternalServiceMock.AoObterItemEstoquePorId(itemIncluido.ItemEstoqueOriginalId).Retorna(itemEstoque);
             _fixture.EstoqueExternalServiceMock.AoAtualizarQuantidade(itemIncluido.ItemEstoqueOriginalId, itemEstoque.Quantidade - itemIncluido.Quantidade.Valor).Completa();
@@ -41,8 +43,10 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
@@ -59,6 +63,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveAtualizarQuantidadeNoEstoque_AposAprovacao()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().ComOrcamento().Build();
 
             var itemIncluido = ordemServico.ItensIncluidos.First();
@@ -73,8 +78,10 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
@@ -95,8 +102,10 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                new AtorBuilder().ComoAdministrador().Build(),
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
@@ -119,12 +128,15 @@ namespace Tests.Application.OrdemServico
             ordemServico.GerarOrcamento();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(new VeiculoBuilder().Build());
             _fixture.EstoqueExternalServiceMock.AoVerificarDisponibilidade(itemEstoque.Id, 5).Retorna(false);
 
             // Act
             await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                new AtorBuilder().ComoAdministrador().Build(),
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
@@ -143,11 +155,14 @@ namespace Tests.Application.OrdemServico
             // Ordem em diagnóstico sem itens/serviços e sem orçamento gerado para provocar DomainException
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(new VeiculoBuilder().Build());
 
             // Act
             await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                new AtorBuilder().ComoAdministrador().Build(),
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
@@ -167,14 +182,17 @@ namespace Tests.Application.OrdemServico
             var itemEstoque = new ItemEstoqueExternalDtoBuilder().ComId(itemIncluido.ItemEstoqueOriginalId).Build();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(new VeiculoBuilder().Build());
             _fixture.EstoqueExternalServiceMock.AoVerificarDisponibilidade(itemIncluido.ItemEstoqueOriginalId, itemIncluido.Quantidade.Valor).Retorna(true);
             _fixture.EstoqueExternalServiceMock.AoObterItemEstoquePorId(itemIncluido.ItemEstoqueOriginalId).Retorna(itemEstoque);
             _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
             await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                new AtorBuilder().ComoAdministrador().Build(),
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
@@ -196,6 +214,7 @@ namespace Tests.Application.OrdemServico
             var itemEstoque = new ItemEstoqueExternalDtoBuilder().ComId(itemIncluido.ItemEstoqueOriginalId).Build();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(new VeiculoBuilder().Build());
             _fixture.EstoqueExternalServiceMock.AoVerificarDisponibilidade(itemIncluido.ItemEstoqueOriginalId, itemIncluido.Quantidade.Valor).Retorna(true);
             _fixture.EstoqueExternalServiceMock.AoObterItemEstoquePorId(itemIncluido.ItemEstoqueOriginalId).Retorna(itemEstoque);
             _fixture.EstoqueExternalServiceMock.AoAtualizarQuantidade(itemIncluido.ItemEstoqueOriginalId, itemEstoque.Quantidade - itemIncluido.Quantidade.Valor).Completa();
@@ -203,8 +222,10 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                new AtorBuilder().ComoAdministrador().Build(),
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
@@ -214,6 +235,35 @@ namespace Tests.Application.OrdemServico
 
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoSucesso();
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoErro();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta aprovar orçamento de outro cliente")]
+        [Trait("UseCase", "AprovarOrcamento")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaAprovarOrcamentoDeOutroCliente()
+        {
+            // Arrange
+            var clienteId = Guid.NewGuid();
+            var outroClienteId = Guid.NewGuid(); // Cliente diferente do dono do veículo
+            var ator = new AtorBuilder().ComoCliente(clienteId).Build();
+            var ordemServico = new OrdemServicoBuilder().ComOrcamento().Build();
+
+            var veiculo = new VeiculoBuilder().ComClienteId(outroClienteId).Build();
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(veiculo);
+
+            // Act
+            await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
+                _fixture.EstoqueExternalServiceMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores ou donos da ordem de serviço podem aprovar orçamentos.", ErrorType.NotAllowed);
+            _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
         }
     }
 }

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using Tests.Helpers;
 
 namespace Tests.Integration.OrdemServico
 {
@@ -2642,6 +2643,116 @@ namespace Tests.Integration.OrdemServico
 
             // Act - Cliente tenta adicionar item
             var response = await clienteAuthenticatedClient.PostAsJsonAsync($"/api/ordens-servico/{ordemServicoId}/itens", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/orcamento/aprovar deve retornar 403 quando cliente tenta aprovar orçamento de outro cliente")]
+        [Trait("Method", "AprovarOrcamento")]
+        [Trait("Authorization", "403")]
+        public async Task AprovarOrcamento_ComClienteTentandoAprovarOrcamentoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono do Veículo",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "ABC9999",
+                Modelo = "Civic Test",
+                Marca = "Honda",
+                Cor = "Branco",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar serviço
+            var servicoDto = new CriarServicoDto { Nome = "Teste Serviço", Preco = 100.00m };
+            var servicoResponse = await _client.PostAsJsonAsync("/api/cadastros/servicos", servicoDto);
+            var servico = await servicoResponse.Content.ReadFromJsonAsync<RetornoServicoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Gerar orçamento
+            await _client.PostAsync($"/api/ordens-servico/{ordem!.Id}/iniciar-diagnostico", null);
+            var adicionarServicosDto = new AdicionarServicosDto { ServicosOriginaisIds = new List<Guid> { servico!.Id } };
+            await _client.PostAsJsonAsync($"/api/ordens-servico/{ordem.Id}/servicos", adicionarServicosDto);
+            await _client.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento", null);
+
+            // Cliente diferente (não dono) tenta aprovar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta aprovar orçamento
+            var response = await outroClienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento/aprovar", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/orcamento/desaprovar deve retornar 403 quando cliente tenta desaprovar orçamento de outro cliente")]
+        [Trait("Method", "DesaprovarOrcamento")]
+        [Trait("Authorization", "403")]
+        public async Task DesaprovarOrcamento_ComClienteTentandoDesaprovarOrcamentoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono do Veículo 2",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "XYZ8888",
+                Modelo = "Corolla Test",
+                Marca = "Toyota",
+                Cor = "Prata",
+                Ano = 2022,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar serviço
+            var servicoDto = new CriarServicoDto { Nome = "Teste Serviço 2", Preco = 150.00m };
+            var servicoResponse = await _client.PostAsJsonAsync("/api/cadastros/servicos", servicoDto);
+            var servico = await servicoResponse.Content.ReadFromJsonAsync<RetornoServicoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Gerar orçamento
+            await _client.PostAsync($"/api/ordens-servico/{ordem!.Id}/iniciar-diagnostico", null);
+            var adicionarServicosDto = new AdicionarServicosDto { ServicosOriginaisIds = new List<Guid> { servico!.Id } };
+            await _client.PostAsJsonAsync($"/api/ordens-servico/{ordem.Id}/servicos", adicionarServicosDto);
+            await _client.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento", null);
+
+            // Cliente diferente (não dono) tenta desaprovar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta desaprovar orçamento
+            var response = await outroClienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento/desaprovar", null);
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);

@@ -75,16 +75,16 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
         }
 
-        public async Task AprovarOrcamentoAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IEstoqueExternalService estoqueExternalService, IOperacaoOrdemServicoPresenter presenter)
+        public async Task AprovarOrcamentoAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IEstoqueExternalService estoqueExternalService, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new AprovarOrcamentoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, gateway, estoqueExternalService, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, gateway, veiculoGateway, estoqueExternalService, presenter);
         }
 
-        public async Task DesaprovarOrcamentoAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task DesaprovarOrcamentoAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new DesaprovarOrcamentoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, gateway, veiculoGateway, presenter);
         }
 
         public async Task FinalizarExecucaoAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)

@@ -1,9 +1,11 @@
 using API.Attributes;
 using API.Dtos;
 using API.Presenters.OrdemServico;
+using Application.Identidade.Services;
 using Application.OrdemServico.Dtos;
 using Infrastructure.Database;
 using Infrastructure.Handlers.OrdemServico;
+using Infrastructure.Repositories.Cadastros;
 using Infrastructure.Repositories.OrdemServico;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -346,11 +348,13 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> AprovarOrcamento(Guid id)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
-            await handler.AprovarOrcamentoAsync(id, gateway, estoqueExternalService, presenter);
+            await handler.AprovarOrcamentoAsync(ator, id, gateway, veiculoGateway, estoqueExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -373,10 +377,12 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> DesaprovarOrcamento(Guid id)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.DesaprovarOrcamentoAsync(id, gateway, presenter);
+            await handler.DesaprovarOrcamentoAsync(ator, id, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -499,11 +505,13 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> WebhookAprovarOrcamento([FromBody] WebhookIdDto dto)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = Ator.Sistema();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
-            await handler.AprovarOrcamentoAsync(dto.Id, gateway, estoqueExternalService, presenter);
+            await handler.AprovarOrcamentoAsync(ator, dto.Id, gateway, veiculoGateway, estoqueExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -530,10 +538,12 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> WebhookDesaprovarOrcamento([FromBody] WebhookIdDto dto)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = Ator.Sistema();
 
-            await handler.DesaprovarOrcamentoAsync(dto.Id, gateway, presenter);
+            await handler.DesaprovarOrcamentoAsync(ator, dto.Id, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -562,7 +572,7 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
-            var ator = Application.Identidade.Services.Ator.Sistema();
+            var ator = Ator.Sistema();
 
             await handler.AlterarStatusAsync(ator, dto.Id, dto.Status, gateway, presenter);
             return presenter.ObterResultado();

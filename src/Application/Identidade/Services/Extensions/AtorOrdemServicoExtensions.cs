@@ -55,4 +55,22 @@ public static class AtorOrdemServicoExtensions
     {
         return ator.PodeGerenciarSistema();
     }
+
+    /// <summary>
+    /// Verifica se o ator pode aprovar/desaprovar orçamentos.
+    /// Administradores, donos da ordem de serviço ou sistema (webhooks) podem aprovar/desaprovar orçamentos.
+    /// </summary>
+    /// <param name="ator">O ator que está tentando realizar a operação</param>
+    /// <param name="ordemServico">A ordem de serviço relacionada ao orçamento</param>
+    /// <param name="veiculoGateway">Gateway para acessar dados dos veículos</param>
+    /// <returns>True se o ator pode aprovar/desaprovar orçamentos, False caso contrário</returns>
+    public static async Task<bool> PodeAprovarDesaprovarOrcamento(this Ator ator, OrdemServicoAggregate ordemServico, IVeiculoGateway veiculoGateway)
+    {
+        // Administradores e sistema podem aprovar/desaprovar qualquer orçamento
+        if (ator.PodeGerenciarSistema() || ator.PodeAcionarWebhooks()) return true;
+
+        // Cliente pode aprovar/desaprovar orçamento apenas se for dono do veículo
+        var veiculo = await veiculoGateway.ObterPorIdAsync(ordemServico.VeiculoId);
+        return veiculo?.ClienteId == ator.ClienteId;
+    }
 }

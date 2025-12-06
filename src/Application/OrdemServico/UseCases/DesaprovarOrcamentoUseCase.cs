@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 using Shared.Exceptions;
 
@@ -7,7 +9,7 @@ namespace Application.OrdemServico.UseCases;
 
 public class DesaprovarOrcamentoUseCase
 {
-    public async Task ExecutarAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IOperacaoOrdemServicoPresenter presenter)
     {
         try
         {
@@ -15,6 +17,12 @@ public class DesaprovarOrcamentoUseCase
             if (ordemServico == null)
             {
                 presenter.ApresentarErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
+                return;
+            }
+
+            if (!await ator.PodeAprovarDesaprovarOrcamento(ordemServico, veiculoGateway))
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores ou donos da ordem de serviço podem desaprovar orçamentos.", ErrorType.NotAllowed);
                 return;
             }
 

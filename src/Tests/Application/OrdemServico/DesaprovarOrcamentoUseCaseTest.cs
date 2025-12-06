@@ -1,5 +1,6 @@
 using Shared.Enums;
 using Tests.Application.OrdemServico.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 
@@ -19,6 +20,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarSucesso_QuandoDesaprovarOrcamento()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().ComOrcamento().Build();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
@@ -26,8 +28,10 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.DesaprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
             // Assert
@@ -40,14 +44,17 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoOrdemServicoNaoForEncontrada()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServicoId = Guid.NewGuid();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).NaoRetornaNada();
 
             // Act
             await _fixture.DesaprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
             // Assert
@@ -60,14 +67,17 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroDeDominio_QuandoDomainLancarDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build(); // Ordem sem orçamento
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
 
             // Act
             await _fixture.DesaprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
             // Assert
@@ -80,6 +90,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().ComOrcamento().Build();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
@@ -87,12 +98,42 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.DesaprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta desaprovar orçamento de outro cliente")]
+        [Trait("UseCase", "DesaprovarOrcamento")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaDesaprovarOrcamentoDeOutroCliente()
+        {
+            // Arrange
+            var clienteId = Guid.NewGuid();
+            var outroClienteId = Guid.NewGuid(); // Cliente diferente do dono do veículo
+            var ator = new AtorBuilder().ComoCliente(clienteId).Build();
+            var ordemServico = new OrdemServicoBuilder().ComOrcamento().Build();
+
+            var veiculo = new VeiculoBuilder().ComClienteId(outroClienteId).Build();
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(veiculo);
+
+            // Act
+            await _fixture.DesaprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores ou donos da ordem de serviço podem desaprovar orçamentos.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
         }
     }
