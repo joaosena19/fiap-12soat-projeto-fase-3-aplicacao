@@ -3053,6 +3053,57 @@ namespace Tests.Integration.OrdemServico
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/iniciar-diagnostico deve retornar 403 quando cliente tenta iniciar diagnóstico")]
+        [Trait("Method", "IniciarDiagnostico")]
+        [Trait("Authorization", "403")]
+        public async Task IniciarDiagnostico_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+
+            // Act - Cliente tenta iniciar diagnóstico
+            var response = await clienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordemServicoId}/iniciar-diagnostico", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/orcamento deve retornar 403 quando cliente tenta gerar orçamento")]
+        [Trait("Method", "GerarOrcamento")]
+        [Trait("Authorization", "403")]
+        public async Task GerarOrcamento_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+
+            // Act - Cliente tenta gerar orçamento
+            var response = await clienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordemServicoId}/orcamento", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/finalizar-execucao deve retornar 403 quando cliente tenta finalizar execução")]
+        [Trait("Method", "FinalizarExecucao")]
+        [Trait("Authorization", "403")]
+        public async Task FinalizarExecucao_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+
+            // Act - Cliente tenta finalizar execução
+            var response = await clienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordemServicoId}/finalizar-execucao", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
     }
 }

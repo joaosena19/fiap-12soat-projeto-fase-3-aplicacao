@@ -69,16 +69,16 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ator, ordemServicoId, gateway, presenter);
         }
 
-        public async Task IniciarDiagnosticoAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task IniciarDiagnosticoAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new IniciarDiagnosticoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, gateway, presenter);
         }
 
-        public async Task GerarOrcamentoAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IGerarOrcamentoPresenter presenter)
+        public async Task GerarOrcamentoAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IGerarOrcamentoPresenter presenter)
         {
             var useCase = new GerarOrcamentoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, gateway, presenter);
         }
 
         public async Task AprovarOrcamentoAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IEstoqueExternalService estoqueExternalService, IOperacaoOrdemServicoPresenter presenter)
@@ -93,10 +93,10 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ator, ordemServicoId, gateway, veiculoGateway, presenter);
         }
 
-        public async Task FinalizarExecucaoAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task FinalizarExecucaoAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new FinalizarExecucaoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, gateway, presenter);
         }
 
         public async Task EntregarAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)

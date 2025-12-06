@@ -301,12 +301,14 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Diagnóstico iniciado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("{id}/iniciar-diagnostico")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -315,8 +317,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.IniciarDiagnosticoAsync(id, gateway, presenter);
+            await handler.IniciarDiagnosticoAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -327,6 +330,7 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Orçamento gerado</returns>
         /// <response code="201">Orçamento gerado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="409">Orçamento já foi gerado</response>
         /// <response code="422">Erro de regra do domínio</response>
@@ -334,6 +338,7 @@ namespace API.Endpoints.OrdemServico
         [HttpPost("{id}/orcamento")]
         [ProducesResponseType(typeof(RetornoOrcamentoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
@@ -343,8 +348,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new GerarOrcamentoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.GerarOrcamentoAsync(id, gateway, presenter);
+            await handler.GerarOrcamentoAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -412,12 +418,14 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Execução finalizada com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("{id}/finalizar-execucao")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -426,8 +434,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.FinalizarExecucaoAsync(id, gateway, presenter);
+            await handler.FinalizarExecucaoAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
