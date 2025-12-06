@@ -99,10 +99,10 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
         }
 
-        public async Task EntregarAsync(Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task EntregarAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new EntregarOrdemServicoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, gateway, presenter);
         }
 
         public async Task ObterTempoMedioAsync(int quantidadeDias, IOrdemServicoGateway gateway, IObterTempoMedioPresenter presenter)

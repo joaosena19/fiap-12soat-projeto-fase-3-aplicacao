@@ -2456,6 +2456,59 @@ namespace Tests.Integration.OrdemServico
             response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         }
 
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/entregar deve retornar status 403 quando cliente tenta entregar")]
+        [Trait("Method", "Entregar")]
+        public async Task Entregar_ComUsuarioCliente_DeveRetornarStatus403()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar cliente de teste
+            var clienteDto = new CriarClienteDto
+            {
+                Nome = "Cliente Entregar 403",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+
+            var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.EnsureSuccessStatusCode();
+            var cliente = await clienteResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo de teste
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = cliente!.Id,
+                Placa = "ENT8903",
+                Modelo = "Civic Entregar 403",
+                Marca = "Honda",
+                Cor = "Preto",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            veiculoResponse.EnsureSuccessStatusCode();
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var createDto = new CriarOrdemServicoDto
+            {
+                VeiculoId = veiculo!.Id
+            };
+
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", createDto);
+            ordemResponse.EnsureSuccessStatusCode();
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Act - usar cliente não-admin
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false);
+            var response = await clienteClient.PostAsync($"/api/ordens-servico/{ordem!.Id}/entregar", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
 
         #region Método ObterTempoMedio Tests
