@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Application.OrdemServico.Interfaces.External;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
 using Shared.Enums;
@@ -9,10 +11,16 @@ namespace Application.OrdemServico.UseCases;
 
 public class CriarOrdemServicoUseCase
 {
-    public async Task ExecutarAsync(Guid veiculoId, IOrdemServicoGateway gateway, IVeiculoExternalService veiculoExternalService, ICriarOrdemServicoPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid veiculoId, IOrdemServicoGateway gateway, IVeiculoExternalService veiculoExternalService, ICriarOrdemServicoPresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarOrdemServico())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem criar ordens de serviço.", ErrorType.NotAllowed);
+                return;
+            }
+
             var veiculoExiste = await veiculoExternalService.VerificarExistenciaVeiculo(veiculoId);
             if (!veiculoExiste)
             {

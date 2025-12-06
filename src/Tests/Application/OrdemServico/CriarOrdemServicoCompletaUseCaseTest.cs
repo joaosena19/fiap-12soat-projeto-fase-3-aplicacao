@@ -4,6 +4,7 @@ using Moq;
 using Shared.Enums;
 using Shared.Exceptions;
 using Tests.Application.OrdemServico.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
@@ -19,11 +20,37 @@ namespace Tests.Application.OrdemServico
             _fixture = new CriarOrdemServicoCompletaTestFixture();
         }
 
+        [Fact(DisplayName = "Deve retornar NotAllowed quando cliente tenta criar ordem de serviço completa")]
+        [Trait("UseCase", "CriarOrdemServicoCompleta")]
+        public async Task ExecutarAsync_DeveRetornarNotAllowed_QuandoClienteTentaCriarOrdemServicoCompleta()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var dto = new CriarOrdemServicoCompletaDtoBuilder().Build();
+
+            // Act
+            await _fixture.UseCase.ExecutarAsync(
+                ator,
+                dto,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ClienteGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
+                _fixture.ServicoGatewayMock.Object,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.PresenterMock.Object);
+
+            // Assert
+            _fixture.PresenterMock.Verify(p => p.ApresentarErro("Acesso negado. Apenas administradores podem criar ordens de serviço completas.", ErrorType.NotAllowed), Times.Once);
+            _fixture.PresenterMock.Verify(p => p.ApresentarSucesso(It.IsAny<OrdemServicoAggregate>()), Times.Never);
+            _fixture.ClienteGatewayMock.Verify(c => c.ObterPorDocumentoAsync(It.IsAny<string>()), Times.Never);
+        }
+
         [Fact(DisplayName = "Deve criar ordem de serviço completa com cliente e veículo novos")]
         [Trait("UseCase", "CriarOrdemServicoCompleta")]
         public async Task ExecutarAsync_DeveCriarOrdemServicoCompleta_ComClienteEVeiculoNovos()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder().Build();
             var clienteCriado = new ClienteBuilder().ComNome(dto.Cliente.Nome).Build();
             var veiculoCriado = new VeiculoBuilder().ComClienteId(clienteCriado.Id).ComPlaca(dto.Veiculo.Placa).Build();
@@ -38,6 +65,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.UseCase.ExecutarAsync(
+                ator,
                 dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
@@ -61,6 +89,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveCriarOrdemServicoCompleta_ComClienteEVeiculoExistentes()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder().Build();
             var clienteExistente = new ClienteBuilder().ComNome(dto.Cliente.Nome).Build();
             var veiculoExistente = new VeiculoBuilder().ComClienteId(clienteExistente.Id).ComPlaca(dto.Veiculo.Placa).Build();
@@ -73,6 +102,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.UseCase.ExecutarAsync(
+                ator,
                 dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
@@ -95,6 +125,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveAdicionarServicos_QuandoEncontrados()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servico1 = new ServicoBuilder().Build();
             var servico2 = new ServicoBuilder().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder()
@@ -112,8 +143,7 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => ordemServicoSalva = os);
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -134,6 +164,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveIgnorarServicos_QuandoNaoEncontrados()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoInexistente1 = Guid.NewGuid();
             var servicoInexistente2 = Guid.NewGuid();
             var dto = new CriarOrdemServicoCompletaDtoBuilder()
@@ -151,8 +182,7 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => ordemServicoSalva = os);
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -171,6 +201,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveAdicionarItens_QuandoEncontrados()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var item1 = new ItemEstoqueBuilder().Build();
             var item2 = new ItemEstoqueBuilder().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder()
@@ -188,8 +219,7 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => ordemServicoSalva = os);
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -210,6 +240,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveIgnorarItens_QuandoNaoEncontrados()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemInexistente1 = Guid.NewGuid();
             var itemInexistente2 = Guid.NewGuid();
             var dto = new CriarOrdemServicoCompletaDtoBuilder()
@@ -227,8 +258,7 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => ordemServicoSalva = os);
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -247,6 +277,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveCriarOrdemServico_SemServicosNemItens()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder()
                 .SemServicos()
                 .SemItens()
@@ -261,8 +292,7 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => ordemServicoSalva = os);
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -283,6 +313,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveGerarCodigoUnico_ParaOrdemServico()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder().Build();
             var clienteExistente = new ClienteBuilder().Build();
             var veiculoExistente = new VeiculoBuilder().ComClienteId(clienteExistente.Id).Build();
@@ -299,8 +330,7 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => ordemServicoSalva = os);
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -321,6 +351,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoOcorrerExcecaoDominio()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder().Build();
             var mensagemErro = "Erro de domínio personalizado";
             var tipoErro = ErrorType.DomainRuleBroken;
@@ -329,8 +360,7 @@ namespace Tests.Application.OrdemServico
                 .LancaExcecao(new DomainException(mensagemErro, tipoErro));
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -349,6 +379,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dto = new CriarOrdemServicoCompletaDtoBuilder().Build();
             var clienteExistente = new ClienteBuilder().Build();
             var veiculoExistente = new VeiculoBuilder().ComClienteId(clienteExistente.Id).Build();
@@ -359,8 +390,7 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoSalvar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
-            await _fixture.UseCase.ExecutarAsync(
-                dto,
+            await _fixture.UseCase.ExecutarAsync(ator, dto,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
@@ -374,3 +404,4 @@ namespace Tests.Application.OrdemServico
         }
     }
 }
+

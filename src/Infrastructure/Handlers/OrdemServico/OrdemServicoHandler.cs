@@ -27,10 +27,16 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ator, codigo, gateway, veiculoGateway, presenter);
         }
 
-        public async Task CriarOrdemServicoAsync(Guid veiculoId, IOrdemServicoGateway gateway, IVeiculoExternalService veiculoExternalService, ICriarOrdemServicoPresenter presenter)
+        public async Task CriarOrdemServicoAsync(Ator ator, Guid veiculoId, IOrdemServicoGateway gateway, IVeiculoExternalService veiculoExternalService, ICriarOrdemServicoPresenter presenter)
         {
             var useCase = new CriarOrdemServicoUseCase();
-            await useCase.ExecutarAsync(veiculoId, gateway, veiculoExternalService, presenter);
+            await useCase.ExecutarAsync(ator, veiculoId, gateway, veiculoExternalService, presenter);
+        }
+
+        public async Task CriarOrdemServicoCompletaAsync(Ator ator, Application.OrdemServico.Dtos.CriarOrdemServicoCompletaDto dto, IOrdemServicoGateway ordemServicoGateway, IClienteGateway clienteGateway, IVeiculoGateway veiculoGateway, IServicoGateway servicoGateway, IItemEstoqueGateway itemEstoqueGateway, ICriarOrdemServicoCompletaPresenter presenter)
+        {
+            var useCase = new CriarOrdemServicoCompletaUseCase();
+            await useCase.ExecutarAsync(ator, dto, ordemServicoGateway, clienteGateway, veiculoGateway, servicoGateway, itemEstoqueGateway, presenter);
         }
 
         public async Task AdicionarServicosAsync(Ator ator, Guid ordemServicoId, List<Guid> servicosOriginaisIds, IOrdemServicoGateway gateway, IServicoExternalService servicoExternalService, IAdicionarServicosPresenter presenter)

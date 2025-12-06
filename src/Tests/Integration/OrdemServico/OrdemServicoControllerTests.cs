@@ -74,7 +74,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Get Test",
-                DocumentoIdentificador = "33604492076"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -130,7 +130,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente GetById Test",
-                DocumentoIdentificador = "47730216086"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -204,7 +204,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente GetByCodigo Test",
-                DocumentoIdentificador = "02593875097"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -281,7 +281,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Post Test",
-                DocumentoIdentificador = "46809315071"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -361,7 +361,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Multi Test",
-                DocumentoIdentificador = "59918722010"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -410,6 +410,89 @@ namespace Tests.Integration.OrdemServico
             ordensNoDB.Should().HaveCount(2);
         }
 
+        [Fact(DisplayName = "POST /api/ordens-servico deve retornar status 403 quando cliente tenta criar ordem")]
+        [Trait("Method", "Post")]
+        public async Task Post_ComUsuarioCliente_DeveRetornarStatus403()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var clienteDto = new CriarClienteDto
+            {
+                Nome = "Cliente Teste 403",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+
+            var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.EnsureSuccessStatusCode();
+            var cliente = await clienteResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = cliente!.Id,
+                Placa = "CLD1234",
+                Modelo = "Civic Cliente",
+                Marca = "Honda",
+                Cor = "Azul",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            veiculoResponse.EnsureSuccessStatusCode();
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            var createDto = new CriarOrdemServicoDto
+            {
+                VeiculoId = veiculo!.Id
+            };
+
+            // Act - usar cliente não-admin
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false);
+            var response = await clienteClient.PostAsJsonAsync("/api/ordens-servico", createDto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        #endregion
+
+        #region Método CriarCompleta Tests
+
+        [Fact(DisplayName = "POST /api/ordens-servico/completa deve retornar status 403 quando cliente tenta criar ordem completa")]
+        [Trait("Method", "CriarCompleta")]
+        public async Task CriarCompleta_ComUsuarioCliente_DeveRetornarStatus403()
+        {
+            // Arrange
+            var criarCompletaDto = new CriarOrdemServicoCompletaDto
+            {
+                Cliente = new ClienteDto
+                {
+                    Nome = "Cliente Teste Completa 403",
+                    DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+                },
+                Veiculo = new VeiculoDto
+                {
+                    Placa = "COM1039",
+                    Modelo = "Civic Completa",
+                    Marca = "Honda",
+                    Cor = "Verde",
+                    Ano = 2023,
+                    TipoVeiculo = TipoVeiculoEnum.Carro
+                },
+                ServicosIds = new List<Guid>(),
+                Itens = new List<ItemDto>()
+            };
+
+            // Act - usar cliente não-admin
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false);
+            var response = await clienteClient.PostAsJsonAsync("/api/ordens-servico/completa", criarCompletaDto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
 
         #region Método AdicionarServicos Tests
@@ -426,7 +509,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente AddServicos Test",
-                DocumentoIdentificador = "90216912059"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -521,7 +604,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Servico Inexistente",
-                DocumentoIdentificador = "91351688030"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -581,7 +664,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente AddItem Test",
-                DocumentoIdentificador = "92875848003"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -666,7 +749,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Increment Test",
-                DocumentoIdentificador = "63546196031"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -770,7 +853,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Item Inexistente",
-                DocumentoIdentificador = "53154657053"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -831,7 +914,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Remove Servico",
-                DocumentoIdentificador = "68297761045"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -925,7 +1008,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Status Inválido",
-                DocumentoIdentificador = "08252118089"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1004,7 +1087,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Remove Item",
-                DocumentoIdentificador = "66466232018"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1101,7 +1184,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Item Status Inválido",
-                DocumentoIdentificador = "07564613084"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1183,7 +1266,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Cancelar Test",
-                DocumentoIdentificador = "97212050016"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1306,7 +1389,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Diagnostico Test",
-                DocumentoIdentificador = "61810280052"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1370,7 +1453,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Diagnostico Status Inválido",
-                DocumentoIdentificador = "45574376059"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1425,7 +1508,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Orçamento Test",
-                DocumentoIdentificador = "00995435081"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1514,7 +1597,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Orçamento Status Inválido",
-                DocumentoIdentificador = "10703165046"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1562,7 +1645,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Orçamento Existente",
-                DocumentoIdentificador = "01305624084"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1639,7 +1722,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Aprovar Orçamento",
-                DocumentoIdentificador = "33507068001"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);

@@ -108,11 +108,13 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Ordem de serviço criada com sucesso</returns>
         /// <response code="201">Ordem de serviço criada com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado - apenas administradores podem criar ordens de serviço</response>
         /// <response code="422">Veículo não encontrado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost]
         [ProducesResponseType(typeof(RetornoOrdemServicoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Post([FromBody] CriarOrdemServicoDto dto)
@@ -121,8 +123,9 @@ namespace API.Endpoints.OrdemServico
             var presenter = new CriarOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
             var veiculoExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.VeiculoExternalService(new Infrastructure.Repositories.Cadastros.VeiculoRepository(_context));
-            
-            await handler.CriarOrdemServicoAsync(dto.VeiculoId, gateway, veiculoExternalService, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.CriarOrdemServicoAsync(ator, dto.VeiculoId, gateway, veiculoExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -133,25 +136,27 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Ordem de serviço criada com sucesso</returns>
         /// <response code="201">Ordem de serviço criada com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado - apenas administradores podem criar ordens de serviço</response>
         /// <response code="422">Erro de validação ou regra de negócio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("completa")]
         [ProducesResponseType(typeof(RetornoOrdemServicoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CriarCompleta([FromBody] CriarOrdemServicoCompletaDto dto)
         {
             var ordemServicoGateway = new OrdemServicoRepository(_context);
-            var clienteGateway = new Infrastructure.Repositories.Cadastros.ClienteRepository(_context);
-            var veiculoGateway = new Infrastructure.Repositories.Cadastros.VeiculoRepository(_context);
-            var servicoGateway = new Infrastructure.Repositories.Cadastros.ServicoRepository(_context);
+            var clienteGateway = new ClienteRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
+            var servicoGateway = new ServicoRepository(_context);
             var itemEstoqueGateway = new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context);
-            
             var presenter = new CriarOrdemServicoCompletaPresenter();
-            var useCase = new Application.OrdemServico.UseCases.CriarOrdemServicoCompletaUseCase();
-            
-            await useCase.ExecutarAsync(dto, ordemServicoGateway, clienteGateway, veiculoGateway, servicoGateway, itemEstoqueGateway, presenter);
+            var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
+
+            await handler.CriarOrdemServicoCompletaAsync(ator, dto, ordemServicoGateway, clienteGateway, veiculoGateway, servicoGateway, itemEstoqueGateway, presenter);
             return presenter.ObterResultado();
         }
 
