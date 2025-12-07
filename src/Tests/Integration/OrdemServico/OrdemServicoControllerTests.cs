@@ -3104,6 +3104,58 @@ namespace Tests.Integration.OrdemServico
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
+        [Fact(DisplayName = "DELETE /api/ordens-servico/{id}/servicos/{servicoId} deve retornar 403 quando cliente tenta remover serviço")]
+        [Trait("Method", "RemoverServico")]
+        [Trait("Authorization", "403")]
+        public async Task RemoverServico_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var servicoIncluidoId = Guid.NewGuid();
+
+            // Act - Cliente tenta remover serviço
+            var response = await clienteAuthenticatedClient.DeleteAsync($"/api/ordens-servico/{ordemServicoId}/servicos/{servicoIncluidoId}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "DELETE /api/ordens-servico/{id}/itens/{itemId} deve retornar 403 quando cliente tenta remover item")]
+        [Trait("Method", "RemoverItem")]
+        [Trait("Authorization", "403")]
+        public async Task RemoverItem_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var itemIncluidoId = Guid.NewGuid();
+
+            // Act - Cliente tenta remover item
+            var response = await clienteAuthenticatedClient.DeleteAsync($"/api/ordens-servico/{ordemServicoId}/itens/{itemIncluidoId}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /api/ordens-servico/tempo-medio deve retornar 403 quando cliente tenta obter tempo médio")]
+        [Trait("Method", "ObterTempoMedio")]
+        [Trait("Authorization", "403")]
+        public async Task ObterTempoMedio_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act - Cliente tenta obter tempo médio
+            var response = await clienteAuthenticatedClient.GetAsync("/api/ordens-servico/tempo-medio");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
     }
 }

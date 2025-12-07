@@ -51,16 +51,16 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ator, ordemServicoId, itemEstoqueOriginalId, quantidade, gateway, estoqueExternalService, presenter);
         }
 
-        public async Task RemoverServicoAsync(Guid ordemServicoId, Guid servicoIncluidoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task RemoverServicoAsync(Ator ator, Guid ordemServicoId, Guid servicoIncluidoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new RemoverServicoUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, servicoIncluidoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, servicoIncluidoId, gateway, presenter);
         }
 
-        public async Task RemoverItemAsync(Guid ordemServicoId, Guid itemIncluidoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
+        public async Task RemoverItemAsync(Ator ator, Guid ordemServicoId, Guid itemIncluidoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
         {
             var useCase = new RemoverItemUseCase();
-            await useCase.ExecutarAsync(ordemServicoId, itemIncluidoId, gateway, presenter);
+            await useCase.ExecutarAsync(ator, ordemServicoId, itemIncluidoId, gateway, presenter);
         }
 
         public async Task CancelarAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IOperacaoOrdemServicoPresenter presenter)
@@ -105,10 +105,10 @@ namespace Infrastructure.Handlers.OrdemServico
             await useCase.ExecutarAsync(ator, ordemServicoId, gateway, presenter);
         }
 
-        public async Task ObterTempoMedioAsync(int quantidadeDias, IOrdemServicoGateway gateway, IObterTempoMedioPresenter presenter)
+        public async Task ObterTempoMedioAsync(Ator ator, int quantidadeDias, IOrdemServicoGateway gateway, IObterTempoMedioPresenter presenter)
         {
             var useCase = new ObterTempoMedioUseCase();
-            await useCase.ExecutarAsync(quantidadeDias, gateway, presenter);
+            await useCase.ExecutarAsync(ator, quantidadeDias, gateway, presenter);
         }
 
         public async Task BuscaPublicaAsync(string codigoOrdemServico, string documentoIdentificadorCliente, IOrdemServicoGateway gateway, IClienteExternalService clienteExternalService, IBuscaPublicaOrdemServicoPresenter presenter)

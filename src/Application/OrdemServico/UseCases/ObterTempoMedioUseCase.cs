@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 using Shared.Exceptions;
 
@@ -7,10 +9,16 @@ namespace Application.OrdemServico.UseCases;
 
 public class ObterTempoMedioUseCase
 {
-    public async Task ExecutarAsync(int quantidadeDias, IOrdemServicoGateway gateway, IObterTempoMedioPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, int quantidadeDias, IOrdemServicoGateway gateway, IObterTempoMedioPresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarOrdemServico())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem obter tempo médio de execução.", ErrorType.NotAllowed);
+                return;
+            }
+
             if (quantidadeDias < 1 || quantidadeDias > 365)
             {
                 presenter.ApresentarErro("A quantidade de dias deve estar entre 1 e 365.", ErrorType.InvalidInput);

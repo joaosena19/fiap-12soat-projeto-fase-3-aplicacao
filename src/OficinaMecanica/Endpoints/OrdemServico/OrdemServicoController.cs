@@ -225,11 +225,13 @@ namespace API.Endpoints.OrdemServico
         /// <param name="servicoIncluidoId">ID do serviço incluído a ser removido</param>
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Serviço removido com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço ou serviço não encontrado</response>
         /// <response code="422">Erros de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpDelete("{id}/servicos/{servicoIncluidoId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -238,8 +240,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.RemoverServicoAsync(id, servicoIncluidoId, gateway, presenter);
+            await handler.RemoverServicoAsync(ator, id, servicoIncluidoId, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -250,11 +253,13 @@ namespace API.Endpoints.OrdemServico
         /// <param name="itemIncluidoId">ID do item incluído a ser removido</param>
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Item removido com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço ou item não encontrado</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpDelete("{id}/itens/{itemIncluidoId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -263,8 +268,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.RemoverItemAsync(id, itemIncluidoId, gateway, presenter);
+            await handler.RemoverItemAsync(ator, id, itemIncluidoId, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -476,11 +482,13 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Dados sobre o tempo médio de execução</returns>
         /// <response code="200">Tempo médio calculado com sucesso</response>
         /// <response code="400">Parâmetros inválidos ou nenhuma ordem encontrada</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("tempo-medio")]
         [ProducesResponseType(typeof(RetornoTempoMedioDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ObterTempoMedio([FromQuery] int quantidadeDias = 365)
@@ -488,8 +496,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new ObterTempoMedioPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.ObterTempoMedioAsync(quantidadeDias, gateway, presenter);
+            await handler.ObterTempoMedioAsync(ator, quantidadeDias, gateway, presenter);
             return presenter.ObterResultado();
         }
 

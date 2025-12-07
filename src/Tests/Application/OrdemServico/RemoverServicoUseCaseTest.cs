@@ -2,6 +2,7 @@ using Shared.Enums;
 using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 
 namespace Tests.Application.OrdemServico
 {
@@ -19,6 +20,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarSucesso_QuandoRemoverServico()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().ComServicos().Build();
             var servicoIncluidoId = ordemServico.ServicosIncluidos.First().Id;
 
@@ -27,6 +29,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.RemoverServicoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicoIncluidoId,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -42,6 +45,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoOrdemServicoNaoForEncontrada()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServicoId = Guid.NewGuid();
             var servicoIncluidoId = Guid.NewGuid();
 
@@ -49,6 +53,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.RemoverServicoUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 servicoIncluidoId,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -64,6 +69,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroDeDominio_QuandoDomainLancarDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().ComServicos().Build();
             var servicoIncluidoIdInexistente = Guid.NewGuid(); // ID que não existe na ordem
 
@@ -71,6 +77,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.RemoverServicoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicoIncluidoIdInexistente,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -86,6 +93,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().ComServicos().Build();
             var servicoIncluidoId = ordemServico.ServicosIncluidos.First().Id;
 
@@ -94,6 +102,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.RemoverServicoUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicoIncluidoId,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -101,6 +110,28 @@ namespace Tests.Application.OrdemServico
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro NotAllowed quando cliente tentar remover serviço")]
+        [Trait("UseCase", "RemoverServico")]
+        public async Task ExecutarAsync_DeveApresentarErroNotAllowed_QuandoClienteTentarRemoverServico()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var ordemServicoId = Guid.NewGuid();
+            var servicoIncluidoId = Guid.NewGuid();
+
+            // Act
+            await _fixture.RemoverServicoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                servicoIncluidoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores podem remover serviços.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
         }
     }
