@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using Tests.Helpers;
+using ClienteAggregate = Domain.Cadastros.Aggregates.Cliente;
 
 namespace Tests.Integration.Cadastros
 {
@@ -71,6 +73,43 @@ namespace Tests.Integration.Cadastros
             clienteAtualizado.Should().NotBeNull();
             clienteAtualizado!.Nome.Valor.Should().Be("João Silva Atualizado");
             clienteAtualizado.DocumentoIdentificador.Valor.Should().Be("42103574052"); // CPF não deve mudar
+        }
+
+        [Fact(DisplayName = "PUT deve retornar 403 Forbidden quando cliente tenta atualizar dados de outro cliente")]
+        [Trait("Metodo", "Put")]
+        public async Task Put_Deve_Retornar403Forbidden_QuandoClienteTentaAtualizarDadosDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar primeiro cliente usando admin
+            var criarDto1 = new { Nome = "Cliente 1", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var adminClient = _factory.CreateAuthenticatedClient(); // cliente admin
+            var createResponse1 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", criarDto1);
+            createResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var cliente1Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == criarDto1.DocumentoIdentificador);
+            cliente1Criado.Should().NotBeNull();
+
+            // Criar segundo cliente usando admin
+            var criarDto2 = new { Nome = "Cliente 2", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var createResponse2 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", criarDto2);
+            createResponse2.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var cliente2Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == criarDto2.DocumentoIdentificador);
+            cliente2Criado.Should().NotBeNull();
+
+            // Autenticar como segundo cliente
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2Criado!.Id);
+
+            var atualizarDto = new { Nome = "Nome Modificado" };
+
+            // Act - tentar atualizar dados do primeiro cliente autenticado como segundo cliente
+            var updateResponse = await cliente2AuthenticatedClient.PutAsJsonAsync($"/api/cadastros/clientes/{cliente1Criado!.Id}", atualizarDto);
+
+            // Assert
+            updateResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
         [Fact(DisplayName = "GET deve retornar 200 OK e lista de clientes")]
@@ -380,6 +419,89 @@ namespace Tests.Integration.Cadastros
             clienteEntity.DocumentoIdentificador.Valor.Should().NotContain(".");
             clienteEntity.DocumentoIdentificador.Valor.Should().NotContain("-");
             clienteEntity.DocumentoIdentificador.TipoDocumento.Should().Be(TipoDocumentoEnum.CPF);
+        }
+
+        [Fact(DisplayName = "GET /documento/{documento} deve retornar 403 quando cliente tenta buscar dados de outro cliente")]
+        [Trait("Metodo", "GetByDocumento")]
+        public async Task GetByDocumento_Deve_Retornar403_QuandoClienteTentaBuscarDadosDeOutroCliente()
+        {
+            // Arrange - Criar um cliente no banco de dados
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var cpfOutroCliente = DocumentoHelper.GerarCpfValido();
+            var clienteEntity = ClienteAggregate.Criar("Cliente Outro", cpfOutroCliente);
+            await context.Clientes.AddAsync(clienteEntity);
+            await context.SaveChangesAsync();
+
+            // Act - Cliente diferente tenta buscar os dados do primeiro cliente
+            var clienteAtualId = Guid.NewGuid(); // ID de um cliente diferente
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteAtualId);
+
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/cadastros/clientes/documento/{cpfOutroCliente}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /{id} deve retornar 403 quando cliente tenta buscar dados de outro cliente")]
+        [Trait("Metodo", "GetById")]
+        public async Task GetById_Deve_Retornar403_QuandoClienteTentaBuscarDadosDeOutroCliente()
+        {
+            // Arrange - Criar um cliente no banco de dados
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var cpfOutroCliente = DocumentoHelper.GerarCpfValido();
+            var clienteEntity = ClienteAggregate.Criar("Cliente Outro", cpfOutroCliente);
+            await context.Clientes.AddAsync(clienteEntity);
+            await context.SaveChangesAsync();
+
+            // Act - Cliente diferente tenta buscar os dados do primeiro cliente pelo ID
+            var clienteAtualId = Guid.NewGuid(); // ID de um cliente diferente
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteAtualId);
+
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/cadastros/clientes/{clienteEntity.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST deve retornar 403 quando usuário tenta criar cliente com documento diferente")]
+        [Trait("Metodo", "Post")]
+        public async Task Post_Deve_Retornar403_QuandoUsuarioTentaCriarClienteComDocumentoDiferente()
+        {
+            // Arrange - Criar primeiro cliente e se autenticar como usuário associado
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var cpfUsuarioExistente = DocumentoHelper.GerarCpfValido();
+            var clienteExistenteEntity = ClienteAggregate.Criar("Cliente Existente", cpfUsuarioExistente);
+            await context.Clientes.AddAsync(clienteExistenteEntity);
+            await context.SaveChangesAsync();
+
+            var usuarioAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteExistenteEntity.Id);
+            var cpfDiferente = DocumentoHelper.GerarCpfValido();
+
+            // Act - Usuário tenta criar novo cliente com CPF diferente do seu
+            var dto = new { Nome = "Outro Cliente", DocumentoIdentificador = cpfDiferente };
+            var response = await usuarioAuthenticatedClient.PostAsJsonAsync("/api/cadastros/clientes", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET deve retornar 403 quando cliente tenta listar clientes")]
+        [Trait("Metodo", "Get")]
+        public async Task Get_Deve_Retornar403_QuandoClienteTentaListarClientes()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act - Cliente tenta listar todos os clientes
+            var response = await clienteAuthenticatedClient.GetAsync("/api/cadastros/clientes");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
     }
 }

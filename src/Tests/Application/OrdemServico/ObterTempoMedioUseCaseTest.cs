@@ -4,6 +4,7 @@ using Shared.Exceptions;
 using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
 
 namespace Tests.Application.OrdemServico
@@ -22,6 +23,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarSucesso_QuandoCalcularTempoMedioComOrdensEntregues()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var quantidadeDias = 30;
             var dataBase = DateTime.UtcNow.AddDays(-15);
 
@@ -35,6 +37,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ObterTempoMedioPresenterMock.Object);
@@ -57,10 +60,12 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoQuantidadeDiasForMenorQue1()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var quantidadeDias = 0;
 
             // Act
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ObterTempoMedioPresenterMock.Object);
@@ -86,10 +91,12 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoQuantidadeDiasForMaiorQue365()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var quantidadeDias = 366;
 
             // Act
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ObterTempoMedioPresenterMock.Object);
@@ -115,11 +122,13 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoNenhumaOrdemEntregueForEncontrada()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var quantidadeDias = 30;
             _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).RetornaListaVazia();
 
             // Act
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ObterTempoMedioPresenterMock.Object);
@@ -145,6 +154,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroDeDominio_QuandoGatewayLancarDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var quantidadeDias = 30;
             var domainException = new DomainException("Erro de acesso aos dados.", ErrorType.DomainRuleBroken);
 
@@ -152,6 +162,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ObterTempoMedioPresenterMock.Object);
@@ -177,12 +188,14 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var quantidadeDias = 30;
 
             _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ObterTempoMedioPresenterMock.Object);
@@ -203,6 +216,37 @@ namespace Tests.Application.OrdemServico
             ), Times.Never);
         }
 
+        [Fact(DisplayName = "Deve apresentar erro NotAllowed quando cliente tentar obter tempo médio")]
+        [Trait("UseCase", "ObterTempoMedio")]
+        public async Task ExecutarAsync_DeveApresentarErroNotAllowed_QuandoClienteTentarObterTempoMedio()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var quantidadeDias = 30;
+
+            // Act
+            await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
+                quantidadeDias,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ObterTempoMedioPresenterMock.Object);
+
+            // Assert
+            _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarErro(
+                "Acesso negado. Apenas administradores podem obter tempo médio de execução.",
+                ErrorType.NotAllowed
+            ), Times.Once);
+
+            _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarSucesso(
+                It.IsAny<int>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<int>(),
+                It.IsAny<double>(),
+                It.IsAny<double>()
+            ), Times.Never);
+        }
+
         [Theory(DisplayName = "Deve calcular tempo médio corretamente com diferentes cenários")]
         [Trait("UseCase", "ObterTempoMedio")]
         [InlineData(1, 1)] // 1 dia, 1 ordem
@@ -211,6 +255,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveCalcularTempoMedioCorretamente_ComDiferentesCenarios(int quantidadeDias, int quantidadeOrdens)
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var dataBase = DateTime.UtcNow.AddDays(-quantidadeDias / 2);
             var ordensEntregues = new List<OrdemServicoAggregate>();
 
@@ -230,6 +275,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ObterTempoMedioPresenterMock.Object);

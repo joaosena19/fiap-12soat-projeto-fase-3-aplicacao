@@ -1,3 +1,4 @@
+using Application.Identidade.Services;
 using Shared.Enums;
 using Shared.Exceptions;
 using Tests.Application.OrdemServico.Helpers;
@@ -15,11 +16,12 @@ namespace Tests.Application.OrdemServico
             _fixture = new OrdemServicoTestFixture();
         }
 
-        [Fact(DisplayName = "Deve apresentar sucesso quando iniciar diagnóstico")]
+        [Fact(DisplayName = "Deve apresentar sucesso quando administrador iniciar diagnóstico")]
         [Trait("UseCase", "IniciarDiagnostico")]
-        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoIniciarDiagnostico()
+        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoAdministradorIniciarDiagnostico()
         {
             // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
             var ordemServicoId = Guid.NewGuid();
             var ordemServico = new OrdemServicoBuilder().Build();
 
@@ -28,6 +30,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
@@ -42,12 +45,14 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoOrdemServicoNaoForEncontrada()
         {
             // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
             var ordemServicoId = Guid.NewGuid();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).NaoRetornaNada();
 
             // Act
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
@@ -62,6 +67,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroDeDominio_QuandoDomainLancarDomainException()
         {
             // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
             var ordemServicoId = Guid.NewGuid();
             var ordemServico = new OrdemServicoBuilder().Build();
             var domainException = new DomainException("Não é possível iniciar diagnóstico neste status.", ErrorType.DomainRuleBroken);
@@ -71,6 +77,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
@@ -85,6 +92,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
             var ordemServicoId = Guid.NewGuid();
             var ordemServico = new OrdemServicoBuilder().Build();
 
@@ -93,12 +101,33 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.OperacaoOrdemServicoPresenterMock.Object);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro NotAllowed quando cliente tentar iniciar diagnóstico")]
+        [Trait("UseCase", "IniciarDiagnostico")]
+        public async Task ExecutarAsync_DeveApresentarErroNotAllowed_QuandoClienteTentarIniciarDiagnostico()
+        {
+            // Arrange
+            var ator = Ator.Cliente(Guid.NewGuid(), Guid.NewGuid());
+            var ordemServicoId = Guid.NewGuid();
+
+            // Act
+            await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores podem iniciar diagnósticos.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
         }
     }

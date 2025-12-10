@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using Tests.Helpers;
 
 namespace Tests.Integration.Cadastros
 {
@@ -29,11 +30,12 @@ namespace Tests.Integration.Cadastros
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             // Create a client first
-            var clienteDto = new { Nome = "João Silva", DocumentoIdentificador = "22315044057" };
+            var cpfValido = DocumentoHelper.GerarCpfValido();
+            var clienteDto = new { Nome = "Maria Silva", DocumentoIdentificador = cpfValido };
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
             clienteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
             
-            var clienteCriado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == "22315044057");
+            var clienteCriado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpfValido);
             clienteCriado.Should().NotBeNull();
 
             var dto = new 
@@ -63,20 +65,21 @@ namespace Tests.Integration.Cadastros
             veiculoEntity.TipoVeiculo.Valor.Should().Be(TipoVeiculoEnum.Carro);
         }
 
-        [Fact(DisplayName = "PUT deve retornar 200 OK e atualizar Veículo existente no banco de dados.")]
+        [Fact(DisplayName = "PUT deve retornar 200 OK e atualizar Veículo existente no banco de dados quando usuário é administrador")]
         [Trait("Metodo", "Put")]
-        public async Task Put_Deve_Retornar200OK_E_AtualizarVeiculo()
+        public async Task Put_Deve_Retornar200OK_E_AtualizarVeiculo_QuandoUsuarioEhAdministrador()
         {
             // Arrange
             using var scope = _factory.Services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             // Create a client first
-            var clienteDto = new { Nome = "Maria Silva", DocumentoIdentificador = "98765432100" };
+            var cpfValido = DocumentoHelper.GerarCpfValido();
+            var clienteDto = new { Nome = "Maria Silva", DocumentoIdentificador = cpfValido };
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
             clienteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
             
-            var clienteCriado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == "98765432100");
+            var clienteCriado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpfValido);
             clienteCriado.Should().NotBeNull();
 
             var criarDto = new 
@@ -121,6 +124,133 @@ namespace Tests.Integration.Cadastros
             veiculoAtualizado.Ano.Valor.Should().Be(2022);
             veiculoAtualizado.Placa.Valor.Should().Be("XYZ5678"); // Placa não deve mudar
         }
+
+        [Fact(DisplayName = "PUT deve retornar 200 OK e atualizar Veículo quando cliente é dono do veículo")]
+        [Trait("Metodo", "Put")]
+        public async Task Put_Deve_Retornar200OK_E_AtualizarVeiculo_QuandoClienteEhDono()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Create a client first
+            var cpfValido = DocumentoHelper.GerarCpfValido();
+            var clienteDto = new { Nome = "João Proprietário", DocumentoIdentificador = cpfValido };
+            var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var clienteCriado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpfValido);
+            clienteCriado.Should().NotBeNull();
+
+            // Criar cliente autenticado com clienteId específico
+            var authenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteCriado!.Id);
+
+            var criarDto = new 
+            { 
+                ClienteId = clienteCriado.Id,
+                Placa = "OWN5678", 
+                Modelo = "Palio", 
+                Marca = "Fiat", 
+                Cor = "Vermelho", 
+                Ano = 2019, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+            var atualizarDto = new 
+            { 
+                Modelo = "Palio Weekend", 
+                Marca = "Fiat", 
+                Cor = "Preto", 
+                Ano = 2020, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+
+            // Create vehicle with admin client first
+            var createResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", criarDto);
+            createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var veiculoCriado = await context.Veiculos.FirstOrDefaultAsync(v => v.Placa.Valor == "OWN5678");
+            veiculoCriado.Should().NotBeNull();
+
+            // Act - Update with owner client
+            var updateResponse = await authenticatedClient.PutAsJsonAsync($"/api/cadastros/veiculos/{veiculoCriado!.Id}", atualizarDto);
+            
+            // Limpa o tracking do EF Core
+            context.ChangeTracker.Clear();
+            var veiculoAtualizado = await context.Veiculos.FirstOrDefaultAsync(v => v.Id == veiculoCriado.Id);
+
+            // Assert
+            updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            veiculoAtualizado.Should().NotBeNull();
+            veiculoAtualizado!.ClienteId.Should().Be(clienteCriado.Id);
+            veiculoAtualizado.Modelo.Valor.Should().Be("Palio Weekend");
+            veiculoAtualizado.Cor.Valor.Should().Be("Preto");
+            veiculoAtualizado.Ano.Valor.Should().Be(2020);
+        }
+
+        [Fact(DisplayName = "PUT deve retornar 403 Forbidden quando cliente tenta atualizar veículo de outro cliente")]
+        [Trait("Metodo", "Put")]
+        public async Task Put_Deve_Retornar403Forbidden_QuandoClienteTentaAtualizarVeiculoDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar dois clientes
+            var cpf1 = DocumentoHelper.GerarCpfValido();
+            var cpf2 = DocumentoHelper.GerarCpfValido();
+            var cliente1Dto = new { Nome = "Cliente Proprietário", DocumentoIdentificador = cpf1 };
+            var cliente2Dto = new { Nome = "Cliente Outro", DocumentoIdentificador = cpf2 };
+            
+            var cliente1Response = await _client.PostAsJsonAsync("/api/cadastros/clientes", cliente1Dto);
+            var cliente2Response = await _client.PostAsJsonAsync("/api/cadastros/clientes", cliente2Dto);
+            
+            cliente1Response.StatusCode.Should().Be(HttpStatusCode.Created);
+            cliente2Response.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1 = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpf1);
+            var cliente2 = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpf2);
+            
+            cliente1.Should().NotBeNull();
+            cliente2.Should().NotBeNull();
+
+            // Criar veículo para cliente1
+            var criarDto = new 
+            { 
+                ClienteId = cliente1!.Id,
+                Placa = "FRB5678", 
+                Modelo = "Gol", 
+                Marca = "Volkswagen", 
+                Cor = "Azul", 
+                Ano = 2018, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+            
+            var createResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", criarDto);
+            createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var veiculoCriado = await context.Veiculos.FirstOrDefaultAsync(v => v.Placa.Valor == "FRB5678");
+            veiculoCriado.Should().NotBeNull();
+
+            // Criar cliente autenticado como cliente2
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2!.Id);
+
+            var atualizarDto = new 
+            { 
+                Modelo = "Gol G7", 
+                Marca = "Volkswagen", 
+                Cor = "Vermelho", 
+                Ano = 2020, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+
+            // Act - Tentar atualizar veículo do cliente1 com autenticação do cliente2
+            var updateResponse = await cliente2AuthenticatedClient.PutAsJsonAsync($"/api/cadastros/veiculos/{veiculoCriado!.Id}", atualizarDto);
+
+            // Assert
+            updateResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+
 
         [Fact(DisplayName = "GET deve retornar 200 OK e lista de veículos")]
         [Trait("Metodo", "Get")]
@@ -203,6 +333,33 @@ namespace Tests.Integration.Cadastros
             veiculos.Should().BeEmpty();
         }
 
+        [Fact(DisplayName = "GET deve retornar 403 Forbidden quando usuário não é admin")]
+        [Trait("Metodo", "Get")]
+        public async Task Get_Deve_Retornar403Forbidden_QuandoUsuarioNaoEhAdmin()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar cliente
+            var cpfValido = DocumentoHelper.GerarCpfValido();
+            var clienteDto = new { Nome = "Cliente Teste", DocumentoIdentificador = cpfValido };
+            var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var clienteCriado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpfValido);
+            clienteCriado.Should().NotBeNull();
+
+            // Criar cliente autenticado (não admin)
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteCriado!.Id);
+
+            // Act - Tentar listar todos os veículos como cliente (não admin)
+            var response = await clienteAuthenticatedClient.GetAsync("/api/cadastros/veiculos");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "GET /{id} deve retornar 200 OK e veículo específico")]
         [Trait("Metodo", "GetById")]
         public async Task GetById_Deve_Retornar200OK_E_VeiculoEspecifico()
@@ -264,6 +421,61 @@ namespace Tests.Integration.Cadastros
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
+        [Fact(DisplayName = "GET /{id} deve retornar 403 Forbidden quando cliente tenta acessar veículo de outro cliente")]
+        [Trait("Metodo", "GetById")]
+        public async Task GetById_Deve_Retornar403Forbidden_QuandoClienteTentaAcessarVeiculoDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar primeiro cliente e autenticar como este cliente para criar veículo
+            var clienteDto1 = new { Nome = "Cliente 1", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var adminClient = _factory.CreateAuthenticatedClient(); // cliente admin
+            var clienteResponse1 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto1);
+            clienteResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto1.DocumentoIdentificador);
+            cliente1Criado.Should().NotBeNull();
+
+            // Autenticar como primeiro cliente para criar veículo para si mesmo
+            var cliente1AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente1Criado!.Id);
+
+            var veiculoDto = new 
+            { 
+                ClienteId = cliente1Criado.Id,
+                Placa = "ABC1234", 
+                Modelo = "Forbidden", 
+                Marca = "Test", 
+                Cor = "Red", 
+                Ano = 2020, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+
+            var createVeiculoResponse = await cliente1AuthenticatedClient.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            createVeiculoResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            var veiculoCriado = await context.Veiculos.FirstOrDefaultAsync(v => v.Placa.Valor == "ABC1234");
+            veiculoCriado.Should().NotBeNull();
+
+            // Criar segundo cliente e autenticar como este cliente
+            var clienteDto2 = new { Nome = "Cliente 2", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var clienteResponse2 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto2);
+            clienteResponse2.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente2Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto2.DocumentoIdentificador);
+            cliente2Criado.Should().NotBeNull();
+
+            // Autenticar como segundo cliente
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2Criado!.Id);
+
+            // Act - tentar acessar veículo do primeiro cliente
+            var response = await cliente2AuthenticatedClient.GetAsync($"/api/cadastros/veiculos/{veiculoCriado!.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "GET /placa/{placa} deve retornar 200 OK e veículo específico")]
         [Trait("Metodo", "GetByPlaca")]
         public async Task GetByPlaca_Deve_Retornar200OK_E_VeiculoEspecifico()
@@ -323,6 +535,58 @@ namespace Tests.Integration.Cadastros
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+
+        [Fact(DisplayName = "GET /placa/{placa} deve retornar 403 Forbidden quando cliente tenta acessar veículo de outro cliente")]
+        [Trait("Metodo", "GetByPlaca")]
+        public async Task GetByPlaca_Deve_Retornar403Forbidden_QuandoClienteTentaAcessarVeiculoDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar primeiro cliente e autenticar como este cliente para criar veículo
+            var clienteDto1 = new { Nome = "Cliente 1 Placa", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var adminClient = _factory.CreateAuthenticatedClient(); // cliente admin
+            var clienteResponse1 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto1);
+            clienteResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto1.DocumentoIdentificador);
+            cliente1Criado.Should().NotBeNull();
+
+            // Autenticar como primeiro cliente para criar veículo para si mesmo
+            var cliente1AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente1Criado!.Id);
+
+            var veiculoDto = new 
+            { 
+                ClienteId = cliente1Criado.Id,
+                Placa = "DEF5678", 
+                Modelo = "PlacaTest", 
+                Marca = "Test", 
+                Cor = "Blue", 
+                Ano = 2021, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+
+            var createVeiculoResponse = await cliente1AuthenticatedClient.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            createVeiculoResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            // Criar segundo cliente e autenticar como este cliente
+            var clienteDto2 = new { Nome = "Cliente 2 Placa", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var clienteResponse2 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto2);
+            clienteResponse2.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente2Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto2.DocumentoIdentificador);
+            cliente2Criado.Should().NotBeNull();
+
+            // Autenticar como segundo cliente
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2Criado!.Id);
+
+            // Act - tentar acessar veículo do primeiro cliente pela placa
+            var response = await cliente2AuthenticatedClient.GetAsync("/api/cadastros/veiculos/placa/DEF5678");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
         [Fact(DisplayName = "POST deve salvar placa sempre em uppercase independente do input")]
@@ -415,6 +679,53 @@ namespace Tests.Integration.Cadastros
 
             // Assert
             secondResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        }
+
+        [Fact(DisplayName = "POST deve retornar 403 Forbidden quando cliente tenta criar veículo para outro cliente")]
+        [Trait("Metodo", "Post")]
+        public async Task Post_Deve_Retornar403Forbidden_QuandoClienteTentaCriarVeiculoParaOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar dois clientes
+            var cpf1 = DocumentoHelper.GerarCpfValido();
+            var cpf2 = DocumentoHelper.GerarCpfValido();
+            var cliente1Dto = new { Nome = "Cliente Proprietário", DocumentoIdentificador = cpf1 };
+            var cliente2Dto = new { Nome = "Cliente Outro", DocumentoIdentificador = cpf2 };
+            
+            var cliente1Response = await _client.PostAsJsonAsync("/api/cadastros/clientes", cliente1Dto);
+            var cliente2Response = await _client.PostAsJsonAsync("/api/cadastros/clientes", cliente2Dto);
+            
+            cliente1Response.StatusCode.Should().Be(HttpStatusCode.Created);
+            cliente2Response.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1 = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpf1);
+            var cliente2 = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == cpf2);
+            
+            cliente1.Should().NotBeNull();
+            cliente2.Should().NotBeNull();
+
+            // Criar cliente autenticado como cliente1
+            var cliente1AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente1!.Id);
+
+            var dto = new 
+            { 
+                ClienteId = cliente2!.Id, // Tentar criar veículo para outro cliente
+                Placa = "FRB4321", 
+                Modelo = "Palio", 
+                Marca = "Fiat", 
+                Cor = "Verde", 
+                Ano = 2019, 
+                TipoVeiculo = (int)TipoVeiculoEnum.Carro 
+            };
+
+            // Act - Tentar criar veículo para outro cliente
+            var response = await cliente1AuthenticatedClient.PostAsJsonAsync("/api/cadastros/veiculos", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
         [Fact(DisplayName = "GET /placa/{placa} deve encontrar veículo independente do case da placa")]
@@ -551,6 +862,41 @@ namespace Tests.Integration.Cadastros
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.UnprocessableContent);
+        }
+
+        [Fact(DisplayName = "GET cliente/{clienteId} deve retornar 403 Forbidden quando cliente tenta acessar veículos de outro cliente")]
+        [Trait("Metodo", "GetByClienteId")]
+        public async Task GetByClienteId_Deve_Retornar403Forbidden_QuandoClienteTentaAcessarVeiculosDeOutroCliente()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar primeiro cliente
+            var clienteDto1 = new { Nome = "Cliente 1 Lista", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var adminClient = _factory.CreateAuthenticatedClient(); // cliente admin
+            var clienteResponse1 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto1);
+            clienteResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente1Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto1.DocumentoIdentificador);
+            cliente1Criado.Should().NotBeNull();
+
+            // Criar segundo cliente e autenticar como este cliente
+            var clienteDto2 = new { Nome = "Cliente 2 Lista", DocumentoIdentificador = DocumentoHelper.GerarCpfValido() };
+            var clienteResponse2 = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto2);
+            clienteResponse2.StatusCode.Should().Be(HttpStatusCode.Created);
+            
+            var cliente2Criado = await context.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentificador.Valor == clienteDto2.DocumentoIdentificador);
+            cliente2Criado.Should().NotBeNull();
+
+            // Autenticar como segundo cliente
+            var cliente2AuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente2Criado!.Id);
+
+            // Act - tentar acessar veículos do primeiro cliente
+            var response = await cliente2AuthenticatedClient.GetAsync($"/api/cadastros/veiculos/cliente/{cliente1Criado!.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
     }
 }

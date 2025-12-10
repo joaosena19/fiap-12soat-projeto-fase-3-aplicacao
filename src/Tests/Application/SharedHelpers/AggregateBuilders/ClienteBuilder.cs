@@ -22,6 +22,12 @@ namespace Tests.Application.SharedHelpers.AggregateBuilders
             return this;
         }
 
+        public ClienteBuilder ComDocumento(string documento)
+        {
+            _documento = documento;
+            return this;
+        }
+
         public ClienteBuilder ComCpfValido()
         {
             _documento = DocumentoHelper.GerarCpfValido();

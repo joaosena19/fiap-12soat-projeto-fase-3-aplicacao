@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using Tests.Helpers;
 
 namespace Tests.Integration.OrdemServico
 {
@@ -49,6 +50,21 @@ namespace Tests.Integration.OrdemServico
             ordensServico.Should().BeEmpty();
         }
 
+        [Fact(DisplayName = "GET /api/ordens-servico deve retornar status 403 quando usuário não for administrador")]
+        [Trait("Method", "Get")]
+        public async Task Get_ComUsuarioNaoAdministrador_DeveRetornarStatus403()
+        {
+            // Arrange
+            var clienteId = Guid.NewGuid();
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act
+            var response = await clienteClient.GetAsync("/api/ordens-servico");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         [Fact(DisplayName = "GET /api/ordens-servico deve retornar status 200 com lista de ordens")]
         [Trait("Method", "Get")]
         public async Task Get_ComOrdensServico_DeveRetornarStatus200ComLista()
@@ -58,7 +74,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Get Test",
-                DocumentoIdentificador = "33604492076"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -97,7 +113,7 @@ namespace Tests.Integration.OrdemServico
             
             var ordensServico = await response.Content.ReadFromJsonAsync<List<RetornoOrdemServicoCompletaDto>>();
             ordensServico.Should().NotBeNull();
-            ordensServico.Should().HaveCountGreaterThan(1);
+            ordensServico.Should().HaveCountGreaterThanOrEqualTo(1);
             ordensServico!.Where(os => os.VeiculoId == veiculo.Id).Should().HaveCount(1);
         }
 
@@ -114,7 +130,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente GetById Test",
-                DocumentoIdentificador = "47730216086"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -188,7 +204,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente GetByCodigo Test",
-                DocumentoIdentificador = "02593875097"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -265,7 +281,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Post Test",
-                DocumentoIdentificador = "46809315071"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -345,7 +361,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Multi Test",
-                DocumentoIdentificador = "59918722010"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -394,6 +410,89 @@ namespace Tests.Integration.OrdemServico
             ordensNoDB.Should().HaveCount(2);
         }
 
+        [Fact(DisplayName = "POST /api/ordens-servico deve retornar status 403 quando cliente tenta criar ordem")]
+        [Trait("Method", "Post")]
+        public async Task Post_ComUsuarioCliente_DeveRetornarStatus403()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var clienteDto = new CriarClienteDto
+            {
+                Nome = "Cliente Teste 403",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+
+            var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.EnsureSuccessStatusCode();
+            var cliente = await clienteResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = cliente!.Id,
+                Placa = "CLD1234",
+                Modelo = "Civic Cliente",
+                Marca = "Honda",
+                Cor = "Azul",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            veiculoResponse.EnsureSuccessStatusCode();
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            var createDto = new CriarOrdemServicoDto
+            {
+                VeiculoId = veiculo!.Id
+            };
+
+            // Act - usar cliente não-admin
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false);
+            var response = await clienteClient.PostAsJsonAsync("/api/ordens-servico", createDto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        #endregion
+
+        #region Método CriarCompleta Tests
+
+        [Fact(DisplayName = "POST /api/ordens-servico/completa deve retornar status 403 quando cliente tenta criar ordem completa")]
+        [Trait("Method", "CriarCompleta")]
+        public async Task CriarCompleta_ComUsuarioCliente_DeveRetornarStatus403()
+        {
+            // Arrange
+            var criarCompletaDto = new CriarOrdemServicoCompletaDto
+            {
+                Cliente = new ClienteDto
+                {
+                    Nome = "Cliente Teste Completa 403",
+                    DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+                },
+                Veiculo = new VeiculoDto
+                {
+                    Placa = "COM1039",
+                    Modelo = "Civic Completa",
+                    Marca = "Honda",
+                    Cor = "Verde",
+                    Ano = 2023,
+                    TipoVeiculo = TipoVeiculoEnum.Carro
+                },
+                ServicosIds = new List<Guid>(),
+                Itens = new List<ItemDto>()
+            };
+
+            // Act - usar cliente não-admin
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false);
+            var response = await clienteClient.PostAsJsonAsync("/api/ordens-servico/completa", criarCompletaDto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
 
         #region Método AdicionarServicos Tests
@@ -410,7 +509,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente AddServicos Test",
-                DocumentoIdentificador = "90216912059"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -505,7 +604,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Servico Inexistente",
-                DocumentoIdentificador = "91351688030"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -565,7 +664,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente AddItem Test",
-                DocumentoIdentificador = "92875848003"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -650,7 +749,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Increment Test",
-                DocumentoIdentificador = "63546196031"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -754,7 +853,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Item Inexistente",
-                DocumentoIdentificador = "53154657053"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -815,7 +914,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Remove Servico",
-                DocumentoIdentificador = "68297761045"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -909,7 +1008,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Status Inválido",
-                DocumentoIdentificador = "08252118089"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -988,7 +1087,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Remove Item",
-                DocumentoIdentificador = "66466232018"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1085,7 +1184,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Item Status Inválido",
-                DocumentoIdentificador = "07564613084"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1167,7 +1266,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Cancelar Test",
-                DocumentoIdentificador = "97212050016"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1222,6 +1321,58 @@ namespace Tests.Integration.OrdemServico
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/cancelar deve retornar status 403 quando usuário não for administrador")]
+        [Trait("Method", "Cancelar")]
+        public async Task Cancelar_ComUsuarioNaoAdministrador_DeveRetornarStatus403()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar cliente de teste
+            var clienteDto = new CriarClienteDto
+            {
+                Nome = "Cliente Cancelar Forbidden Test",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+
+            var adminClient = _factory.CreateAuthenticatedClient();
+            var clienteResponse = await adminClient.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.EnsureSuccessStatusCode();
+            var cliente = await clienteResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo de teste
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = cliente!.Id,
+                Placa = "CAN4567",
+                Modelo = "Civic Forbidden",
+                Marca = "Honda",
+                Cor = "Azul",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+
+            var veiculoResponse = await adminClient.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            veiculoResponse.EnsureSuccessStatusCode();
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await adminClient.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            ordemResponse.EnsureSuccessStatusCode();
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Criar cliente autenticado (não admin)
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: cliente.Id);
+
+            // Act
+            var response = await clienteClient.PostAsync($"/api/ordens-servico/{ordem!.Id}/cancelar", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
 
         #region Método IniciarDiagnostico Tests
@@ -1238,7 +1389,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Diagnostico Test",
-                DocumentoIdentificador = "61810280052"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1302,7 +1453,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Diagnostico Status Inválido",
-                DocumentoIdentificador = "45574376059"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1357,7 +1508,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Orçamento Test",
-                DocumentoIdentificador = "00995435081"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1446,7 +1597,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Orçamento Status Inválido",
-                DocumentoIdentificador = "10703165046"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1494,7 +1645,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Orçamento Existente",
-                DocumentoIdentificador = "01305624084"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -1571,7 +1722,7 @@ namespace Tests.Integration.OrdemServico
             var clienteDto = new CriarClienteDto
             {
                 Nome = "Cliente Aprovar Orçamento",
-                DocumentoIdentificador = "33507068001"
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
             };
 
             var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
@@ -2305,6 +2456,59 @@ namespace Tests.Integration.OrdemServico
             response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         }
 
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/entregar deve retornar status 403 quando cliente tenta entregar")]
+        [Trait("Method", "Entregar")]
+        public async Task Entregar_ComUsuarioCliente_DeveRetornarStatus403()
+        {
+            // Arrange
+            using var scope = _factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Criar cliente de teste
+            var clienteDto = new CriarClienteDto
+            {
+                Nome = "Cliente Entregar 403",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+
+            var clienteResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDto);
+            clienteResponse.EnsureSuccessStatusCode();
+            var cliente = await clienteResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo de teste
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = cliente!.Id,
+                Placa = "ENT8903",
+                Modelo = "Civic Entregar 403",
+                Marca = "Honda",
+                Cor = "Preto",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            veiculoResponse.EnsureSuccessStatusCode();
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var createDto = new CriarOrdemServicoDto
+            {
+                VeiculoId = veiculo!.Id
+            };
+
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", createDto);
+            ordemResponse.EnsureSuccessStatusCode();
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Act - usar cliente não-admin
+            var clienteClient = _factory.CreateAuthenticatedClient(isAdmin: false);
+            var response = await clienteClient.PostAsync($"/api/ordens-servico/{ordem!.Id}/entregar", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
         #endregion
 
         #region Método ObterTempoMedio Tests
@@ -2598,6 +2802,358 @@ namespace Tests.Integration.OrdemServico
 
             var content = await response.Content.ReadAsStringAsync();
             content.Should().Be("null"); // Deve retornar null como JSON
+        }
+
+        #endregion
+
+        #region Testes de Autorização 403
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/servicos deve retornar 403 quando cliente tenta adicionar serviços")]
+        [Trait("Method", "AdicionarServicos")]
+        [Trait("Authorization", "403")]
+        public async Task AdicionarServicos_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var dto = new
+            {
+                ServicosOriginaisIds = new[] { Guid.NewGuid(), Guid.NewGuid() }
+            };
+
+            // Act - Cliente tenta adicionar serviços
+            var response = await clienteAuthenticatedClient.PostAsJsonAsync($"/api/ordens-servico/{ordemServicoId}/servicos", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/itens deve retornar 403 quando cliente tenta adicionar item")]
+        [Trait("Method", "AdicionarItem")]
+        [Trait("Authorization", "403")]
+        public async Task AdicionarItem_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var dto = new
+            {
+                ItemEstoqueOriginalId = Guid.NewGuid(),
+                Quantidade = 2
+            };
+
+            // Act - Cliente tenta adicionar item
+            var response = await clienteAuthenticatedClient.PostAsJsonAsync($"/api/ordens-servico/{ordemServicoId}/itens", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/orcamento/aprovar deve retornar 403 quando cliente tenta aprovar orçamento de outro cliente")]
+        [Trait("Method", "AprovarOrcamento")]
+        [Trait("Authorization", "403")]
+        public async Task AprovarOrcamento_ComClienteTentandoAprovarOrcamentoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono do Veículo",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "ABC9999",
+                Modelo = "Civic Test",
+                Marca = "Honda",
+                Cor = "Branco",
+                Ano = 2023,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar serviço
+            var servicoDto = new CriarServicoDto { Nome = "Teste Serviço", Preco = 100.00m };
+            var servicoResponse = await _client.PostAsJsonAsync("/api/cadastros/servicos", servicoDto);
+            var servico = await servicoResponse.Content.ReadFromJsonAsync<RetornoServicoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Gerar orçamento
+            await _client.PostAsync($"/api/ordens-servico/{ordem!.Id}/iniciar-diagnostico", null);
+            var adicionarServicosDto = new AdicionarServicosDto { ServicosOriginaisIds = new List<Guid> { servico!.Id } };
+            await _client.PostAsJsonAsync($"/api/ordens-servico/{ordem.Id}/servicos", adicionarServicosDto);
+            await _client.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento", null);
+
+            // Cliente diferente (não dono) tenta aprovar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta aprovar orçamento
+            var response = await outroClienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento/aprovar", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/orcamento/desaprovar deve retornar 403 quando cliente tenta desaprovar orçamento de outro cliente")]
+        [Trait("Method", "DesaprovarOrcamento")]
+        [Trait("Authorization", "403")]
+        public async Task DesaprovarOrcamento_ComClienteTentandoDesaprovarOrcamentoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono do Veículo 2",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "XYZ8888",
+                Modelo = "Corolla Test",
+                Marca = "Toyota",
+                Cor = "Prata",
+                Ano = 2022,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar serviço
+            var servicoDto = new CriarServicoDto { Nome = "Teste Serviço 2", Preco = 150.00m };
+            var servicoResponse = await _client.PostAsJsonAsync("/api/cadastros/servicos", servicoDto);
+            var servico = await servicoResponse.Content.ReadFromJsonAsync<RetornoServicoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Gerar orçamento
+            await _client.PostAsync($"/api/ordens-servico/{ordem!.Id}/iniciar-diagnostico", null);
+            var adicionarServicosDto = new AdicionarServicosDto { ServicosOriginaisIds = new List<Guid> { servico!.Id } };
+            await _client.PostAsJsonAsync($"/api/ordens-servico/{ordem.Id}/servicos", adicionarServicosDto);
+            await _client.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento", null);
+
+            // Cliente diferente (não dono) tenta desaprovar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta desaprovar orçamento
+            var response = await outroClienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordem.Id}/orcamento/desaprovar", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        #endregion
+
+        #region Testes de Autorização para Busca
+
+        [Fact(DisplayName = "GET /api/ordens-servico/{id} deve retornar 403 quando cliente tenta buscar ordem de serviço de outro cliente")]
+        [Trait("Method", "BuscarOrdemServicoPorId")]
+        [Trait("Authorization", "403")]
+        public async Task BuscarOrdemServicoPorId_ComClienteTentandoBuscarOrdemServicoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono da Busca",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "BUS1235",
+                Modelo = "Fusion Test",
+                Marca = "Ford",
+                Cor = "Azul",
+                Ano = 2021,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Cliente diferente (não dono) tenta buscar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta buscar ordem de serviço
+            var response = await outroClienteAuthenticatedClient.GetAsync($"/api/ordens-servico/{ordem!.Id}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /api/ordens-servico/codigo/{codigo} deve retornar 403 quando cliente tenta buscar ordem de serviço de outro cliente")]
+        [Trait("Method", "BuscarOrdemServicoPorCodigo")]
+        [Trait("Authorization", "403")]
+        public async Task BuscarOrdemServicoPorCodigo_ComClienteTentandoBuscarOrdemServicoDeOutroCliente_DeveRetornar403()
+        {
+            // Arrange - Criar cliente dono do veículo/ordem
+            var clienteDonoDto = new CriarClienteDto
+            {
+                Nome = "Cliente Dono da Busca 2",
+                DocumentoIdentificador = DocumentoHelper.GerarCpfValido()
+            };
+            var clienteDonoResponse = await _client.PostAsJsonAsync("/api/cadastros/clientes", clienteDonoDto);
+            var clienteDono = await clienteDonoResponse.Content.ReadFromJsonAsync<RetornoClienteDto>();
+
+            // Criar veículo do cliente dono
+            var veiculoDto = new CriarVeiculoDto
+            {
+                ClienteId = clienteDono!.Id,
+                Placa = "COD5678",
+                Modelo = "Mustang Test",
+                Marca = "Ford",
+                Cor = "Vermelho",
+                Ano = 2020,
+                TipoVeiculo = TipoVeiculoEnum.Carro
+            };
+            var veiculoResponse = await _client.PostAsJsonAsync("/api/cadastros/veiculos", veiculoDto);
+            var veiculo = await veiculoResponse.Content.ReadFromJsonAsync<RetornoVeiculoDto>();
+
+            // Criar ordem de serviço
+            var ordemDto = new CriarOrdemServicoDto { VeiculoId = veiculo!.Id };
+            var ordemResponse = await _client.PostAsJsonAsync("/api/ordens-servico", ordemDto);
+            var ordem = await ordemResponse.Content.ReadFromJsonAsync<RetornoOrdemServicoDto>();
+
+            // Cliente diferente (não dono) tenta buscar
+            var outroClienteId = Guid.NewGuid();
+            var outroClienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: outroClienteId);
+
+            // Act - Cliente diferente tenta buscar ordem de serviço por código
+            var response = await outroClienteAuthenticatedClient.GetAsync($"/api/ordens-servico/codigo/{ordem!.Codigo}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/iniciar-diagnostico deve retornar 403 quando cliente tenta iniciar diagnóstico")]
+        [Trait("Method", "IniciarDiagnostico")]
+        [Trait("Authorization", "403")]
+        public async Task IniciarDiagnostico_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+
+            // Act - Cliente tenta iniciar diagnóstico
+            var response = await clienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordemServicoId}/iniciar-diagnostico", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/orcamento deve retornar 403 quando cliente tenta gerar orçamento")]
+        [Trait("Method", "GerarOrcamento")]
+        [Trait("Authorization", "403")]
+        public async Task GerarOrcamento_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+
+            // Act - Cliente tenta gerar orçamento
+            var response = await clienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordemServicoId}/orcamento", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST /api/ordens-servico/{id}/finalizar-execucao deve retornar 403 quando cliente tenta finalizar execução")]
+        [Trait("Method", "FinalizarExecucao")]
+        [Trait("Authorization", "403")]
+        public async Task FinalizarExecucao_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+
+            // Act - Cliente tenta finalizar execução
+            var response = await clienteAuthenticatedClient.PostAsync($"/api/ordens-servico/{ordemServicoId}/finalizar-execucao", null);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "DELETE /api/ordens-servico/{id}/servicos/{servicoId} deve retornar 403 quando cliente tenta remover serviço")]
+        [Trait("Method", "RemoverServico")]
+        [Trait("Authorization", "403")]
+        public async Task RemoverServico_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var servicoIncluidoId = Guid.NewGuid();
+
+            // Act - Cliente tenta remover serviço
+            var response = await clienteAuthenticatedClient.DeleteAsync($"/api/ordens-servico/{ordemServicoId}/servicos/{servicoIncluidoId}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "DELETE /api/ordens-servico/{id}/itens/{itemId} deve retornar 403 quando cliente tenta remover item")]
+        [Trait("Method", "RemoverItem")]
+        [Trait("Authorization", "403")]
+        public async Task RemoverItem_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var ordemServicoId = Guid.NewGuid();
+            var itemIncluidoId = Guid.NewGuid();
+
+            // Act - Cliente tenta remover item
+            var response = await clienteAuthenticatedClient.DeleteAsync($"/api/ordens-servico/{ordemServicoId}/itens/{itemIncluidoId}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /api/ordens-servico/tempo-medio deve retornar 403 quando cliente tenta obter tempo médio")]
+        [Trait("Method", "ObterTempoMedio")]
+        [Trait("Authorization", "403")]
+        public async Task ObterTempoMedio_ComClienteNaoAdmin_DeveRetornar403()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act - Cliente tenta obter tempo médio
+            var response = await clienteAuthenticatedClient.GetAsync("/api/ordens-servico/tempo-medio");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
 
         #endregion

@@ -1,4 +1,5 @@
 using API.Dtos;
+using API.Endpoints;
 using API.Presenters.Cadastro.Servico;
 using Application.Cadastros.Dtos;
 using Infrastructure.Database;
@@ -14,7 +15,7 @@ namespace API.Endpoints.Cadastro
     [Route("api/cadastros/servicos")]
     [ApiController]
     [Produces("application/json")]
-    public class ServicoController : ControllerBase
+    public class ServicoController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -37,8 +38,9 @@ namespace API.Endpoints.Cadastro
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new BuscarServicosPresenter();
             var handler = new ServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.BuscarServicosAsync(servicoGateway, presenter);
+            await handler.BuscarServicosAsync(ator, servicoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -59,8 +61,9 @@ namespace API.Endpoints.Cadastro
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new BuscarServicoPorIdPresenter();
             var handler = new ServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.BuscarServicoPorIdAsync(id, servicoGateway, presenter);
+            await handler.BuscarServicoPorIdAsync(ator, id, servicoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -83,8 +86,9 @@ namespace API.Endpoints.Cadastro
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new CriarServicoPresenter();
             var handler = new ServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.CriarServicoAsync(dto.Nome, dto.Preco, servicoGateway, presenter);
+            await handler.CriarServicoAsync(ator, dto.Nome, dto.Preco, servicoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -108,8 +112,9 @@ namespace API.Endpoints.Cadastro
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new AtualizarServicoPresenter();
             var handler = new ServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.AtualizarServicoAsync(id, dto.Nome, dto.Preco, servicoGateway, presenter);
+            await handler.AtualizarServicoAsync(ator, id, dto.Nome, dto.Preco, servicoGateway, presenter);
             return presenter.ObterResultado();
         }
     }

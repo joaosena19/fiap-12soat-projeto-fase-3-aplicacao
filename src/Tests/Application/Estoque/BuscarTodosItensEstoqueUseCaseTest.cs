@@ -3,6 +3,7 @@ using Shared.Enums;
 using Tests.Application.Estoque.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using ItemEstoqueAggregate = Domain.Estoque.Aggregates.ItemEstoque;
 
 namespace Tests.Application.Estoque
@@ -21,6 +22,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveBuscarTodosItensEstoqueComSucesso()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itensEstoque = new List<ItemEstoqueAggregate>
             {
                 new ItemEstoqueBuilder().ComNome("Filtro de Óleo").Build(),
@@ -32,6 +34,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.BuscarTodosItensEstoqueUseCase.ExecutarAsync(
+                ator,
                 _fixture.ItemEstoqueGatewayMock.Object,
                 _fixture.BuscarTodosItensEstoquePresenterMock.Object);
 
@@ -44,10 +47,12 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarListaVazia_QuandoNaoHouverItensEstoque()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             _fixture.ItemEstoqueGatewayMock.AoObterTodos().Retorna(new List<ItemEstoqueAggregate>());
 
             // Act
             await _fixture.BuscarTodosItensEstoqueUseCase.ExecutarAsync(
+                ator,
                 _fixture.ItemEstoqueGatewayMock.Object,
                 _fixture.BuscarTodosItensEstoquePresenterMock.Object);
 
@@ -60,15 +65,34 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             _fixture.ItemEstoqueGatewayMock.AoObterTodos().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
             await _fixture.BuscarTodosItensEstoqueUseCase.ExecutarAsync(
+                ator,
                 _fixture.ItemEstoqueGatewayMock.Object,
                 _fixture.BuscarTodosItensEstoquePresenterMock.Object);
 
             // Assert
             _fixture.BuscarTodosItensEstoquePresenterMock.DeveTerApresentadoErro<IBuscarTodosItensEstoquePresenter, IEnumerable<ItemEstoqueAggregate>>("Erro interno do servidor.", ErrorType.UnexpectedError);
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta buscar todos os itens de estoque")]
+        [Trait("UseCase", "BuscarTodosItensEstoque")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaBuscarTodosItensEstoque()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+
+            // Act
+            await _fixture.BuscarTodosItensEstoqueUseCase.ExecutarAsync(
+                ator,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.BuscarTodosItensEstoquePresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarTodosItensEstoquePresenterMock.DeveTerApresentadoErro<IBuscarTodosItensEstoquePresenter, IEnumerable<ItemEstoqueAggregate>>("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
         }
     }
 }

@@ -1,5 +1,6 @@
 using Shared.Enums;
 using Tests.Application.Estoque.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 
@@ -19,6 +20,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveVerificarDisponibilidadeComSucesso_QuandoItemExistirEQuantidadeForSuficiente()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder()
                 .ComQuantidade(50)
                 .Build();
@@ -29,6 +31,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
                 itemExistente.Id,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -43,6 +46,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveVerificarDisponibilidadeComSucesso_QuandoItemExistirEQuantidadeForInsuficiente()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder()
                 .ComQuantidade(10)
                 .Build();
@@ -53,6 +57,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
                 itemExistente.Id,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -67,12 +72,14 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErro_QuandoItemNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemId = Guid.NewGuid();
             var quantidadeRequisitada = 10;
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).NaoRetornaNada();
 
             // Act
             await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
                 itemId,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -87,6 +94,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder().Build();
             var quantidadeInvalida = -5; // Quantidade inválida para provocar DomainException
 
@@ -94,6 +102,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
                 itemExistente.Id,
                 quantidadeInvalida,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -108,12 +117,14 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemId = Guid.NewGuid();
             var quantidadeRequisitada = 10;
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
             await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
                 itemId,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
@@ -121,6 +132,27 @@ namespace Tests.Application.Estoque
 
             // Assert
             _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoErroVerificacaoDisponibilidade("Erro interno do servidor.", ErrorType.UnexpectedError);
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro de acesso negado quando cliente tentar verificar disponibilidade do estoque")]
+        [Trait("UseCase", "VerificarDisponibilidade")]
+        public async Task ExecutarAsync_DeveApresentarErroAcessoNegado_QuandoClienteTentarVerificarDisponibilidadeEstoque()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var itemId = Guid.NewGuid();
+            var quantidadeRequisitada = 10;
+
+            // Act
+            await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
+                itemId,
+                quantidadeRequisitada,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.VerificarDisponibilidadePresenterMock.Object);
+
+            // Assert
+            _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoErroVerificacaoDisponibilidade("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
         }
     }
 }

@@ -1,33 +1,34 @@
 using Application.Cadastros.UseCases;
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 
 namespace Infrastructure.Handlers.Cadastros
 {
     public class ServicoHandler
     {
-        public async Task CriarServicoAsync(string nome, decimal preco, IServicoGateway gateway, ICriarServicoPresenter presenter)
+        public async Task CriarServicoAsync(Ator ator, string nome, decimal preco, IServicoGateway gateway, ICriarServicoPresenter presenter)
         {
             var useCase = new CriarServicoUseCase();
-            await useCase.ExecutarAsync(nome, preco, gateway, presenter);
+            await useCase.ExecutarAsync(ator, nome, preco, gateway, presenter);
         }
 
-        public async Task AtualizarServicoAsync(Guid id, string nome, decimal preco, IServicoGateway gateway, IAtualizarServicoPresenter presenter)
+        public async Task AtualizarServicoAsync(Ator ator, Guid id, string nome, decimal preco, IServicoGateway gateway, IAtualizarServicoPresenter presenter)
         {
             var useCase = new AtualizarServicoUseCase();
-            await useCase.ExecutarAsync(id, nome, preco, gateway, presenter);
+            await useCase.ExecutarAsync(ator, id, nome, preco, gateway, presenter);
         }
 
-        public async Task BuscarServicosAsync(IServicoGateway gateway, IBuscarServicosPresenter presenter)
+        public async Task BuscarServicosAsync(Ator ator, IServicoGateway gateway, IBuscarServicosPresenter presenter)
         {
             var useCase = new BuscarServicosUseCase();
-            await useCase.ExecutarAsync(gateway, presenter);
+            await useCase.ExecutarAsync(ator, gateway, presenter);
         }
 
-        public async Task BuscarServicoPorIdAsync(Guid id, IServicoGateway gateway, IBuscarServicoPorIdPresenter presenter)
+        public async Task BuscarServicoPorIdAsync(Ator ator, Guid id, IServicoGateway gateway, IBuscarServicoPorIdPresenter presenter)
         {
             var useCase = new BuscarServicoPorIdUseCase();
-            await useCase.ExecutarAsync(id, gateway, presenter);
+            await useCase.ExecutarAsync(ator, id, gateway, presenter);
         }
     }
 }

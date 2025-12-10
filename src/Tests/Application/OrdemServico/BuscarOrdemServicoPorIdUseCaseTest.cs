@@ -1,6 +1,7 @@
 using Application.Contracts.Presenters;
 using Shared.Enums;
 using Tests.Application.OrdemServico.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
@@ -16,11 +17,12 @@ namespace Tests.Application.OrdemServico
             _fixture = new OrdemServicoTestFixture();
         }
 
-        [Fact(DisplayName = "Deve apresentar sucesso quando ordem de serviço existir")]
+        [Fact(DisplayName = "Deve apresentar sucesso quando ordem de serviço existir e ator for administrador")]
         [Trait("UseCase", "BuscarOrdemServicoPorId")]
-        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoOrdemServicoExistir()
+        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoOrdemServicoExistirEAtorForAdministrador()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var id = ordemServico.Id;
 
@@ -28,8 +30,37 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.BuscarOrdemServicoPorIdUseCase.ExecutarAsync(
+                ator,
                 id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
+                _fixture.BuscarOrdemServicoPorIdPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarOrdemServicoPorIdPresenterMock.DeveTerApresentadoSucesso<IBuscarOrdemServicoPorIdPresenter, OrdemServicoAggregate>(ordemServico);
+            _fixture.BuscarOrdemServicoPorIdPresenterMock.NaoDeveTerApresentadoErro<IBuscarOrdemServicoPorIdPresenter, OrdemServicoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar sucesso quando ordem de serviço existir e ator for dono do veículo")]
+        [Trait("UseCase", "BuscarOrdemServicoPorId")]
+        public async Task ExecutarAsync_DeveApresentarSucesso_QuandoOrdemServicoExistirEAtorForDonoDoVeiculo()
+        {
+            // Arrange
+            var clienteId = Guid.NewGuid();
+            var ator = new AtorBuilder().ComoCliente(clienteId).Build();
+            var ordemServico = new OrdemServicoBuilder().Build();
+            var veiculo = new VeiculoBuilder().ComClienteId(clienteId).Build();
+            var id = ordemServico.Id;
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(veiculo);
+
+            // Act
+            await _fixture.BuscarOrdemServicoPorIdUseCase.ExecutarAsync(
+                ator,
+                id,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.BuscarOrdemServicoPorIdPresenterMock.Object);
 
             // Assert
@@ -42,18 +73,49 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoOrdemServicoNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var id = Guid.NewGuid();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(id).NaoRetornaNada();
 
             // Act
             await _fixture.BuscarOrdemServicoPorIdUseCase.ExecutarAsync(
+                ator,
                 id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.BuscarOrdemServicoPorIdPresenterMock.Object);
 
             // Assert
             _fixture.BuscarOrdemServicoPorIdPresenterMock.DeveTerApresentadoErro<IBuscarOrdemServicoPorIdPresenter, OrdemServicoAggregate>("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
+            _fixture.BuscarOrdemServicoPorIdPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarOrdemServicoPorIdPresenter, OrdemServicoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tentar buscar ordem de serviço de outro cliente")]
+        [Trait("UseCase", "BuscarOrdemServicoPorId")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentarBuscarOrdemServicoDeOutroCliente()
+        {
+            // Arrange
+            var clienteId = Guid.NewGuid();
+            var outroClienteId = Guid.NewGuid();
+            var ator = new AtorBuilder().ComoCliente(clienteId).Build();
+            var ordemServico = new OrdemServicoBuilder().Build();
+            var veiculo = new VeiculoBuilder().ComClienteId(outroClienteId).Build(); // Veículo de outro cliente
+            var id = ordemServico.Id;
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(id).Retorna(ordemServico);
+            _fixture.VeiculoGatewayMock.AoObterPorId(ordemServico.VeiculoId).Retorna(veiculo);
+
+            // Act
+            await _fixture.BuscarOrdemServicoPorIdUseCase.ExecutarAsync(
+                ator,
+                id,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
+                _fixture.BuscarOrdemServicoPorIdPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarOrdemServicoPorIdPresenterMock.DeveTerApresentadoErro<IBuscarOrdemServicoPorIdPresenter, OrdemServicoAggregate>("Acesso negado. Apenas administradores ou donos da ordem de serviço podem visualizá-la.", ErrorType.NotAllowed);
             _fixture.BuscarOrdemServicoPorIdPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarOrdemServicoPorIdPresenter, OrdemServicoAggregate>();
         }
 
@@ -62,14 +124,17 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var id = Guid.NewGuid();
 
             _fixture.OrdemServicoGatewayMock.AoObterPorId(id).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
             await _fixture.BuscarOrdemServicoPorIdUseCase.ExecutarAsync(
+                ator,
                 id,
                 _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
                 _fixture.BuscarOrdemServicoPorIdPresenterMock.Object);
 
             // Assert

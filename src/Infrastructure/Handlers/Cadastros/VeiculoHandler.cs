@@ -1,48 +1,49 @@
 using Application.Cadastros.UseCases;
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 using Domain.Cadastros.Enums;
 
 namespace Infrastructure.Handlers.Cadastros
 {
     public class VeiculoHandler
     {
-        public async Task CriarVeiculoAsync(Guid clienteId, string placa, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,
+        public async Task CriarVeiculoAsync(Ator ator, Guid clienteId, string placa, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,
             IVeiculoGateway veiculoGateway, IClienteGateway clienteGateway, ICriarVeiculoPresenter presenter)
         {
             var useCase = new CriarVeiculoUseCase();
-            await useCase.ExecutarAsync(clienteId, placa, modelo, marca, cor, ano, tipoVeiculo, veiculoGateway, clienteGateway, presenter);
+            await useCase.ExecutarAsync(ator, clienteId, placa, modelo, marca, cor, ano, tipoVeiculo, veiculoGateway, clienteGateway, presenter);
         }
 
-        public async Task AtualizarVeiculoAsync(Guid id, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,
+        public async Task AtualizarVeiculoAsync(Ator ator, Guid id, string modelo, string marca, string cor, int ano, TipoVeiculoEnum tipoVeiculo,
             IVeiculoGateway gateway, IAtualizarVeiculoPresenter presenter)
         {
             var useCase = new AtualizarVeiculoUseCase();
-            await useCase.ExecutarAsync(id, modelo, marca, cor, ano, tipoVeiculo, gateway, presenter);
+            await useCase.ExecutarAsync(ator, id, modelo, marca, cor, ano, tipoVeiculo, gateway, presenter);
         }
 
-        public async Task BuscarVeiculosAsync(IVeiculoGateway gateway, IBuscarVeiculosPresenter presenter)
+        public async Task BuscarVeiculosAsync(Ator ator, IVeiculoGateway gateway, IBuscarVeiculosPresenter presenter)
         {
             var useCase = new BuscarVeiculosUseCase();
-            await useCase.ExecutarAsync(gateway, presenter);
+            await useCase.ExecutarAsync(ator, gateway, presenter);
         }
 
-        public async Task BuscarVeiculoPorIdAsync(Guid id, IVeiculoGateway gateway, IBuscarVeiculoPorIdPresenter presenter)
+        public async Task BuscarVeiculoPorIdAsync(Ator ator, Guid id, IVeiculoGateway gateway, IBuscarVeiculoPorIdPresenter presenter)
         {
             var useCase = new BuscarVeiculoPorIdUseCase();
-            await useCase.ExecutarAsync(id, gateway, presenter);
+            await useCase.ExecutarAsync(ator, id, gateway, presenter);
         }
 
-        public async Task BuscarVeiculoPorPlacaAsync(string placa, IVeiculoGateway gateway, IBuscarVeiculoPorPlacaPresenter presenter)
+        public async Task BuscarVeiculoPorPlacaAsync(Ator ator, string placa, IVeiculoGateway gateway, IBuscarVeiculoPorPlacaPresenter presenter)
         {
             var useCase = new BuscarVeiculoPorPlacaUseCase();
-            await useCase.ExecutarAsync(placa, gateway, presenter);
+            await useCase.ExecutarAsync(ator, placa, gateway, presenter);
         }
 
-        public async Task BuscarVeiculosPorClienteAsync(Guid clienteId, IVeiculoGateway veiculoGateway, IClienteGateway clienteGateway, IBuscarVeiculosPorClientePresenter presenter)
+        public async Task BuscarVeiculosPorClienteAsync(Ator ator, Guid clienteId, IVeiculoGateway veiculoGateway, IClienteGateway clienteGateway, IBuscarVeiculosPorClientePresenter presenter)
         {
             var useCase = new BuscarVeiculosPorClienteUseCase();
-            await useCase.ExecutarAsync(clienteId, veiculoGateway, clienteGateway, presenter);
+            await useCase.ExecutarAsync(ator, clienteId, veiculoGateway, clienteGateway, presenter);
         }
     }
 }

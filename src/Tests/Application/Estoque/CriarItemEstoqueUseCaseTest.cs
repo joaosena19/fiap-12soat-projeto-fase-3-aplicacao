@@ -5,6 +5,7 @@ using Shared.Enums;
 using Tests.Application.Estoque.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using ItemEstoqueAggregate = Domain.Estoque.Aggregates.ItemEstoque;
 
 namespace Tests.Application.Estoque
@@ -23,6 +24,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveCriarItemEstoqueComSucesso_QuandoNaoExistirItemComMesmoNome()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemEsperado = new ItemEstoqueBuilder().Build();
 
             ItemEstoqueAggregate? itemCriado = null;
@@ -32,6 +34,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
+                ator,
                 itemEsperado.Nome.Valor,
                 itemEsperado.Quantidade.Valor,
                 itemEsperado.TipoItemEstoque.Valor,
@@ -55,6 +58,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroConflito_QuandoJaExistirItemComMesmoNome()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder()
                 .ComNome("Filtro de Óleo")
                 .Build();
@@ -67,6 +71,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
+                ator,
                 itemParaTentar.Nome.Valor,
                 itemParaTentar.Quantidade.Valor,
                 itemParaTentar.TipoItemEstoque.Valor,
@@ -84,6 +89,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var nomeInvalido = "";
             var quantidadeValida = 10;
             var tipoValido = TipoItemEstoqueEnum.Peca;
@@ -93,6 +99,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
+                ator,
                 nomeInvalido,
                 quantidadeValida,
                 tipoValido,
@@ -110,6 +117,7 @@ namespace Tests.Application.Estoque
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemParaCriar = new ItemEstoqueBuilder()
                 .ComNome("Filtro de Ar")
                 .ComQuantidade(20)
@@ -122,6 +130,7 @@ namespace Tests.Application.Estoque
 
             // Act
             await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
+                ator,
                 itemParaCriar.Nome.Valor,
                 itemParaCriar.Quantidade.Valor,
                 itemParaCriar.TipoItemEstoque.Valor,
@@ -131,6 +140,29 @@ namespace Tests.Application.Estoque
 
             // Assert
             _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.CriarItemEstoquePresenterMock.NaoDeveTerApresentadoSucesso<ICriarItemEstoquePresenter, ItemEstoqueAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta criar item de estoque")]
+        [Trait("UseCase", "CriarItemEstoque")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaCriarItemEstoque()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var itemParaCriar = new ItemEstoqueBuilder().Build();
+
+            // Act
+            await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
+                ator,
+                itemParaCriar.Nome.Valor,
+                itemParaCriar.Quantidade.Valor,
+                itemParaCriar.TipoItemEstoque.Valor,
+                itemParaCriar.Preco.Valor,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.CriarItemEstoquePresenterMock.Object);
+
+            // Assert
+            _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
             _fixture.CriarItemEstoquePresenterMock.NaoDeveTerApresentadoSucesso<ICriarItemEstoquePresenter, ItemEstoqueAggregate>();
         }
     }

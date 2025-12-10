@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Application.OrdemServico.Dtos;
 using Domain.Cadastros.Aggregates;
 using Domain.OrdemServico.Enums;
@@ -10,14 +12,20 @@ using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemS
 namespace Application.OrdemServico.UseCases;
 
 /// <summary>
-/// Cria uma ordem de serviço completa, incluindo cliente, veículo, serviços e itens de estoque. Tenta buscar clientes e veículos existentes antes de criar novos. Caso serviços ou itens não sejam encontrados, são ignorados.
+/// Cria uma ordem de serviÃ§o completa, incluindo cliente, veÃ­culo, serviÃ§os e itens de estoque. Tenta buscar clientes e veÃ­culos existentes antes de criar novos. Caso serviÃ§os ou itens nÃ£o sejam encontrados, sÃ£o ignorados.
 /// </summary>
 public class CriarOrdemServicoCompletaUseCase
 {
-    public async Task ExecutarAsync(CriarOrdemServicoCompletaDto dto, IOrdemServicoGateway ordemServicoGateway, IClienteGateway clienteGateway, IVeiculoGateway veiculoGateway, IServicoGateway servicoGateway, IItemEstoqueGateway itemEstoqueGateway, ICriarOrdemServicoCompletaPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, CriarOrdemServicoCompletaDto dto, IOrdemServicoGateway ordemServicoGateway, IClienteGateway clienteGateway, IVeiculoGateway veiculoGateway, IServicoGateway servicoGateway, IItemEstoqueGateway itemEstoqueGateway, ICriarOrdemServicoCompletaPresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarOrdemServico())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem criar ordens de serviÃ§o completas.", ErrorType.NotAllowed);
+                return;
+            }
+
             var cliente = await BuscarOuCriarCliente(dto.Cliente, clienteGateway);
             var veiculo = await BuscarOuCriarVeiculo(dto.Veiculo, cliente.Id, veiculoGateway);
             var novaOrdemServico = await CriarOrdemServicoComCodigoUnico(veiculo.Id, ordemServicoGateway);
@@ -79,7 +87,7 @@ public class CriarOrdemServicoCompletaUseCase
     }
 
     /// <summary>
-    /// Adiciona serviços. Caso não encontre o serviço pelo ID, apenas ignora.
+    /// Adiciona serviï¿½os. Caso nï¿½o encontre o serviï¿½o pelo ID, apenas ignora.
     /// </summary>
     private async Task AdicionarServicos(List<Guid>? servicosIds, OrdemServicoAggregate ordemServico, IServicoGateway servicoGateway)
     {
@@ -95,7 +103,7 @@ public class CriarOrdemServicoCompletaUseCase
     }
 
     /// <summary>
-    /// Adiciona itens. Caso não encontre o item pelo ID, apenas ignora.
+    /// Adiciona itens. Caso nï¿½o encontre o item pelo ID, apenas ignora.
     /// </summary>
     private async Task AdicionarItens(List<ItemDto>? itens, OrdemServicoAggregate ordemServico, IItemEstoqueGateway itemEstoqueGateway)
     {

@@ -1,7 +1,9 @@
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 using FluentAssertions;
 using Shared.Enums;
 using Tests.Application.Cadastros.Servico.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using ServicoAggregate = Domain.Cadastros.Aggregates.Servico;
@@ -17,11 +19,12 @@ namespace Tests.Application.Cadastros.Servico
             _fixture = new ServicoTestFixture();
         }
 
-        [Fact(DisplayName = "Deve atualizar serviço com sucesso quando serviço existir")]
+        [Fact(DisplayName = "Deve atualizar serviço com sucesso quando é administrador")]
         [Trait("UseCase", "AtualizarServico")]
-        public async Task ExecutarAsync_DeveAtualizarServicoComSucesso_QuandoServicoExistir()
+        public async Task ExecutarAsync_DeveAtualizarServicoComSucesso_QuandoEhAdministrador()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoExistente = new ServicoBuilder().Build();
             var nomeOriginal = servicoExistente.Nome.Valor;
             var novoNome = "Novo Nome do Serviço";
@@ -34,7 +37,7 @@ namespace Tests.Application.Cadastros.Servico
 
             // Act
             await _fixture.AtualizarServicoUseCase.ExecutarAsync(
-                servicoExistente.Id, novoNome, novoPreco,
+                ator, servicoExistente.Id, novoNome, novoPreco,
                 _fixture.ServicoGatewayMock.Object, _fixture.AtualizarServicoPresenterMock.Object);
 
             // Assert
@@ -46,17 +49,38 @@ namespace Tests.Application.Cadastros.Servico
             _fixture.AtualizarServicoPresenterMock.NaoDeveTerApresentadoErro<IAtualizarServicoPresenter, ServicoAggregate>();
         }
 
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta atualizar serviço")]
+        [Trait("UseCase", "AtualizarServico")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaAtualizarServico()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var id = Guid.NewGuid();
+            var novoNome = "Novo Nome do Serviço";
+            var novoPreco = 250.50m;
+
+            // Act
+            await _fixture.AtualizarServicoUseCase.ExecutarAsync(
+                ator, id, novoNome, novoPreco,
+                _fixture.ServicoGatewayMock.Object, _fixture.AtualizarServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.AtualizarServicoPresenterMock.DeveTerApresentadoErro<IAtualizarServicoPresenter, ServicoAggregate>("Acesso negado. Apenas administradores podem gerenciar serviços.", ErrorType.NotAllowed);
+            _fixture.AtualizarServicoPresenterMock.NaoDeveTerApresentadoSucesso<IAtualizarServicoPresenter, ServicoAggregate>();
+        }
+
         [Fact(DisplayName = "Deve apresentar erro quando serviço não existir")]
         [Trait("UseCase", "AtualizarServico")]
         public async Task ExecutarAsync_DeveApresentarErro_QuandoServicoNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoId = Guid.NewGuid();
             _fixture.ServicoGatewayMock.AoObterPorId(servicoId).NaoRetornaNada();
 
             // Act
             await _fixture.AtualizarServicoUseCase.ExecutarAsync(
-                servicoId, "Nome", 100m,
+                ator, servicoId, "Nome", 100m,
                 _fixture.ServicoGatewayMock.Object, _fixture.AtualizarServicoPresenterMock.Object);
 
             // Assert
@@ -69,6 +93,7 @@ namespace Tests.Application.Cadastros.Servico
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoExistente = new ServicoBuilder().Build();
             var nomeInvalido = ""; // Nome inválido para provocar DomainException
 
@@ -76,7 +101,7 @@ namespace Tests.Application.Cadastros.Servico
 
             // Act
             await _fixture.AtualizarServicoUseCase.ExecutarAsync(
-                servicoExistente.Id, nomeInvalido, 100m,
+                ator, servicoExistente.Id, nomeInvalido, 100m,
                 _fixture.ServicoGatewayMock.Object, _fixture.AtualizarServicoPresenterMock.Object);
 
             // Assert
@@ -89,13 +114,14 @@ namespace Tests.Application.Cadastros.Servico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoExistente = new ServicoBuilder().Build();
             _fixture.ServicoGatewayMock.AoObterPorId(servicoExistente.Id).Retorna(servicoExistente);
             _fixture.ServicoGatewayMock.AoAtualizar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
             await _fixture.AtualizarServicoUseCase.ExecutarAsync(
-                servicoExistente.Id, "Nome", 100m,
+                ator, servicoExistente.Id, "Nome", 100m,
                 _fixture.ServicoGatewayMock.Object, _fixture.AtualizarServicoPresenterMock.Object);
 
             // Assert

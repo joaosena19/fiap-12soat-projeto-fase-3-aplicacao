@@ -1,5 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Domain.Cadastros.Aggregates;
 using Shared.Exceptions;
 using Shared.Enums;
@@ -8,11 +10,17 @@ namespace Application.Cadastros.UseCases
 {
     public class CriarClienteUseCase
     {
-        public async Task ExecutarAsync(string nome, string documento, IClienteGateway gateway, ICriarClientePresenter presenter)
+        public async Task ExecutarAsync(Ator ator, string nome, string documento, IClienteGateway clienteGateway, IUsuarioGateway usuarioGateway, ICriarClientePresenter presenter)
         {
             try
             {
-                var clienteExistente = await gateway.ObterPorDocumentoAsync(documento);
+                if (!await ator.PodeCriarClienteAsync(documento, usuarioGateway))
+                {
+                    presenter.ApresentarErro("Acesso negado. Administradores podem cadastrar qualquer cliente, usuários podem criar cliente apenas com o mesmo documento.", ErrorType.NotAllowed);
+                    return;
+                }
+
+                var clienteExistente = await clienteGateway.ObterPorDocumentoAsync(documento);
                 if (clienteExistente != null)
                 {
                     presenter.ApresentarErro("Já existe um cliente cadastrado com este documento.", ErrorType.Conflict);
@@ -20,7 +28,7 @@ namespace Application.Cadastros.UseCases
                 }
 
                 var novoCliente = Cliente.Criar(nome, documento);
-                var clienteSalvo = await gateway.SalvarAsync(novoCliente);
+                var clienteSalvo = await clienteGateway.SalvarAsync(novoCliente);
 
                 presenter.ApresentarSucesso(clienteSalvo);
             }

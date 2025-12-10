@@ -4,6 +4,7 @@ using Moq;
 using Shared.Enums;
 using Shared.Exceptions;
 using Tests.Application.OrdemServico.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
@@ -19,11 +20,34 @@ namespace Tests.Application.OrdemServico
             _fixture = new OrdemServicoTestFixture();
         }
 
+        [Fact(DisplayName = "Deve retornar NotAllowed quando cliente tenta criar ordem de serviço")]
+        [Trait("UseCase", "CriarOrdemServico")]
+        public async Task ExecutarAsync_DeveRetornarNotAllowed_QuandoClienteTentaCriarOrdemServico()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var veiculoId = Guid.NewGuid();
+
+            // Act
+            await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                veiculoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoExternalServiceMock.Object,
+                _fixture.CriarOrdemServicoPresenterMock.Object);
+
+            // Assert
+            _fixture.CriarOrdemServicoPresenterMock.Verify(p => p.ApresentarErro("Acesso negado. Apenas administradores podem criar ordens de serviço.", ErrorType.NotAllowed), Times.Once);
+            _fixture.CriarOrdemServicoPresenterMock.Verify(p => p.ApresentarSucesso(It.IsAny<OrdemServicoAggregate>()), Times.Never);
+            _fixture.VeiculoExternalServiceMock.Verify(v => v.VerificarExistenciaVeiculo(It.IsAny<Guid>()), Times.Never);
+        }
+
         [Fact(DisplayName = "Deve criar ordem de serviço com status inicial Recebida")]
         [Trait("UseCase", "CriarOrdemServico")]
         public async Task ExecutarAsync_DeveCriarOrdemServicoComStatusRecebida()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculoId = Guid.NewGuid();
             OrdemServicoAggregate? ordemServicoSalva = null;
 
@@ -33,6 +57,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
@@ -51,12 +76,14 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoVeiculoNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculoId = Guid.NewGuid();
 
             _fixture.VeiculoExternalServiceMock.AoVerificarExistenciaVeiculo(veiculoId).Retorna(false);
 
             // Act
             await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
@@ -72,6 +99,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveGerarNovoCodigo_QuandoCodigoJaExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculoId = Guid.NewGuid();
             var ordemServicoExistente = new OrdemServicoBuilder().ComVeiculoId(Guid.NewGuid()).Build();
             OrdemServicoAggregate? ordemServicoSalva = null;
@@ -86,6 +114,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
@@ -103,12 +132,14 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculoId = Guid.NewGuid();
 
             _fixture.VeiculoExternalServiceMock.AoVerificarExistenciaVeiculo(veiculoId).LancaExcecao(new DomainException("Erro de domínio personalizado", ErrorType.DomainRuleBroken));
 
             // Act
             await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
@@ -124,6 +155,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculoId = Guid.NewGuid();
 
             _fixture.VeiculoExternalServiceMock.AoVerificarExistenciaVeiculo(veiculoId).Retorna(true);
@@ -132,6 +164,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
@@ -149,6 +182,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveVerificarCodigoExistenteESalvar()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculoId = Guid.NewGuid();
 
             _fixture.VeiculoExternalServiceMock.AoVerificarExistenciaVeiculo(veiculoId).Retorna(true);
@@ -157,6 +191,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
@@ -172,6 +207,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveGerarCodigoFormatoCorreto()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculoId = Guid.NewGuid();
             OrdemServicoAggregate? ordemServicoSalva = null;
 
@@ -181,6 +217,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,

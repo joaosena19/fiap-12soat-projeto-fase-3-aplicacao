@@ -144,5 +144,69 @@ namespace Tests.Integration.Cadastros
             servico.Nome.Should().Be("Diagnóstico eletrônico");
             servico.Preco.Should().Be(180.00M);
         }
+
+        [Fact(DisplayName = "GET deve retornar 403 Forbidden quando cliente tenta listar serviços")]
+        [Trait("Metodo", "Get")]
+        public async Task Get_Deve_Retornar403Forbidden_QuandoClienteTentaListarServicos()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act - Cliente tenta listar serviços
+            var response = await clienteAuthenticatedClient.GetAsync("/api/cadastros/servicos");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /{id} deve retornar 403 Forbidden quando cliente tenta buscar serviço por ID")]
+        [Trait("Metodo", "GetById")]
+        public async Task GetById_Deve_Retornar403Forbidden_QuandoClienteTentaBuscarServicoPorId()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var servicoId = Guid.NewGuid();
+
+            // Act - Cliente tenta buscar serviço por ID
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/cadastros/servicos/{servicoId}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST deve retornar 403 Forbidden quando cliente tenta criar serviço")]
+        [Trait("Metodo", "Post")]
+        public async Task Post_Deve_Retornar403Forbidden_QuandoClienteTentaCriarServico()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var dto = new { Nome = "Serviço não autorizado", Preco = 100.00M };
+
+            // Act - Cliente tenta criar serviço
+            var response = await clienteAuthenticatedClient.PostAsJsonAsync("/api/cadastros/servicos", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "PUT deve retornar 403 Forbidden quando cliente tenta atualizar serviço")]
+        [Trait("Metodo", "Put")]
+        public async Task Put_Deve_Retornar403Forbidden_QuandoClienteTentaAtualizarServico()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var servicoId = Guid.NewGuid();
+            var dto = new { Nome = "Serviço atualizado", Preco = 200.00M };
+
+            // Act - Cliente tenta atualizar serviço
+            var response = await clienteAuthenticatedClient.PutAsJsonAsync($"/api/cadastros/servicos/{servicoId}", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
     }
 }

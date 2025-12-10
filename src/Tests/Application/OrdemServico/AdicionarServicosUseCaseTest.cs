@@ -4,6 +4,7 @@ using Shared.Enums;
 using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
 
 namespace Tests.Application.OrdemServico
@@ -22,6 +23,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveAdicionarServicosComSucesso_QuandoOrdemServicoExistirEServicosForemValidos()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var servico1 = new ServicoExternalDtoBuilder().Build();
             var servico2 = new ServicoExternalDtoBuilder().Build();
@@ -36,6 +38,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -65,6 +68,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoOrdemServicoNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServicoId = Guid.NewGuid();
             var servicoId = Guid.NewGuid();
             var servicosIds = new List<Guid> { servicoId };
@@ -73,6 +77,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -89,6 +94,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoServicoNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var servicoId = Guid.NewGuid();
             var servicosIds = new List<Guid> { servicoId };
@@ -98,6 +104,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -114,11 +121,13 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoListaServicosForNula()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServicoId = Guid.NewGuid();
             List<Guid>? servicosIds = null;
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 servicosIds!,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -135,11 +144,13 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoListaServicosForVazia()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServicoId = Guid.NewGuid();
             var servicosIds = new List<Guid>();
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -156,6 +167,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var servico = new ServicoExternalDtoBuilder().Build();
             var servicosIds = new List<Guid> { servico.Id };
@@ -168,6 +180,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -184,6 +197,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var servico = new ServicoExternalDtoBuilder().Build();
             var servicosIds = new List<Guid> { servico.Id };
@@ -194,6 +208,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -210,6 +225,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveAdicionarUmServicoComSucesso()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var servico = new ServicoExternalDtoBuilder().Build();
             var servicosIds = new List<Guid> { servico.Id };
@@ -222,6 +238,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
@@ -239,6 +256,29 @@ namespace Tests.Application.OrdemServico
 
             _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoSucesso<IAdicionarServicosPresenter, OrdemServicoAggregate>(ordemServicoAtualizada);
             _fixture.AdicionarServicosPresenterMock.NaoDeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta adicionar serviços em ordem de serviço")]
+        [Trait("UseCase", "AdicionarServicos")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaAdicionarServicos()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var ordemServico = new OrdemServicoBuilder().Build();
+            var servicosIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
+
+            // Act
+            await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                servicosIds,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ServicoExternalServiceMock.Object,
+                _fixture.AdicionarServicosPresenterMock.Object);
+
+            // Assert
+            _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("Acesso negado. Apenas administradores podem gerenciar ordens de serviço.", ErrorType.NotAllowed);
+            _fixture.AdicionarServicosPresenterMock.NaoDeveTerApresentadoSucesso<IAdicionarServicosPresenter, OrdemServicoAggregate>();
         }
     }
 }

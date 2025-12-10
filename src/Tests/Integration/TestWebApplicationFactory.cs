@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
+using Tests.Helpers;
 
 namespace Tests.Integration
 {
@@ -32,7 +33,10 @@ namespace Tests.Integration
             {
                 var overrides = new Dictionary<string, string>
                 {
-                    ["Webhook:HmacSecret"] = TestHmacUtils.TestHmacSecret
+                    ["Webhook:HmacSecret"] = TestHmacUtils.TestHmacSecret,
+                    ["Jwt:Key"] = JwtTestConstants.Key,
+                    ["Jwt:Issuer"] = JwtTestConstants.Issuer,
+                    ["Jwt:Audience"] = JwtTestConstants.Audience
                 };
                 config.AddInMemoryCollection(overrides);
             });
@@ -52,7 +56,32 @@ namespace Tests.Integration
                     options.UseInMemoryDatabase(_databaseName);
                 });
 
+                // Reconfigura JWT com valores de teste
+                services.Configure<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions>(
+                    Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme,
+                    options =>
+                    {
+                        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                        {
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                                System.Text.Encoding.UTF8.GetBytes(JwtTestConstants.Key)),
+                            ValidateIssuer = true,
+                            ValidIssuer = JwtTestConstants.Issuer,
+                            ValidateAudience = true,
+                            ValidAudience = JwtTestConstants.Audience,
+                            ValidateLifetime = true,
+                            ClockSkew = TimeSpan.Zero
+                        };
+                    });
 
+                // Configura o ServiceProvider para inicializar o banco
+                var serviceProvider = services.BuildServiceProvider();
+                using var scope = serviceProvider.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                
+                // Garante que o banco é criado e inicializado com os dados de seed
+                context.Database.EnsureCreated();
             });
 
             base.ConfigureWebHost(builder);

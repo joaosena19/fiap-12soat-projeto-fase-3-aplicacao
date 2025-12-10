@@ -457,5 +457,115 @@ namespace Tests.Integration.Estoque
             itemAtualizado.Should().NotBeNull();
             itemAtualizado!.TipoItemEstoque.Valor.Should().Be(TipoItemEstoqueEnum.Insumo);
         }
+
+        [Fact(DisplayName = "GET deve retornar 403 Forbidden quando cliente tenta listar itens de estoque")]
+        [Trait("Metodo", "Get")]
+        public async Task Get_Deve_Retornar403Forbidden_QuandoClienteTentaListarItensEstoque()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+
+            // Act - Cliente tenta listar itens de estoque
+            var response = await clienteAuthenticatedClient.GetAsync("/api/estoque/itens");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /{id} deve retornar 403 Forbidden quando cliente tenta buscar item de estoque por ID")]
+        [Trait("Metodo", "GetById")]
+        public async Task GetById_Deve_Retornar403Forbidden_QuandoClienteTentaBuscarItemEstoquePorId()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var itemId = Guid.NewGuid();
+
+            // Act - Cliente tenta buscar item de estoque por ID
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/estoque/itens/{itemId}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "POST deve retornar 403 Forbidden quando cliente tenta criar item de estoque")]
+        [Trait("Metodo", "Post")]
+        public async Task Post_Deve_Retornar403Forbidden_QuandoClienteTentaCriarItemEstoque()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var dto = new 
+            { 
+                Nome = "Item não autorizado",
+                Quantidade = 10,
+                TipoItemEstoque = (int)TipoItemEstoqueEnum.Peca,
+                Preco = 100.00m
+            };
+
+            // Act - Cliente tenta criar item de estoque
+            var response = await clienteAuthenticatedClient.PostAsJsonAsync("/api/estoque/itens", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "PUT deve retornar 403 Forbidden quando cliente tenta atualizar item de estoque")]
+        [Trait("Metodo", "Put")]
+        public async Task Put_Deve_Retornar403Forbidden_QuandoClienteTentaAtualizarItemEstoque()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var itemId = Guid.NewGuid();
+            var dto = new 
+            { 
+                Nome = "Item atualizado não autorizado",
+                Quantidade = 20,
+                TipoItemEstoque = (int)TipoItemEstoqueEnum.Peca,
+                Preco = 200.00m
+            };
+
+            // Act - Cliente tenta atualizar item de estoque
+            var response = await clienteAuthenticatedClient.PutAsJsonAsync($"/api/estoque/itens/{itemId}", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "PATCH deve retornar 403 Forbidden quando cliente tenta atualizar quantidade de item de estoque")]
+        [Trait("Metodo", "UpdateQuantidade")]
+        public async Task UpdateQuantidade_Deve_Retornar403Forbidden_QuandoClienteTentaAtualizarQuantidade()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var itemId = Guid.NewGuid();
+            var dto = new { Quantidade = 50 };
+
+            // Act - Cliente tenta atualizar quantidade
+            var response = await clienteAuthenticatedClient.PatchAsJsonAsync($"/api/estoque/itens/{itemId}/quantidade", dto);
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+
+        [Fact(DisplayName = "GET /{id}/disponibilidade deve retornar 403 Forbidden quando cliente tenta verificar disponibilidade")]
+        [Trait("Metodo", "VerificarDisponibilidade")]
+        public async Task VerificarDisponibilidade_Deve_Retornar403Forbidden_QuandoClienteTentaVerificarDisponibilidade()
+        {
+            // Arrange - Cliente autenticado (não admin)
+            var clienteId = Guid.NewGuid();
+            var clienteAuthenticatedClient = _factory.CreateAuthenticatedClient(isAdmin: false, clienteId: clienteId);
+            var itemId = Guid.NewGuid();
+            var quantidadeRequisitada = 5;
+
+            // Act - Cliente tenta verificar disponibilidade
+            var response = await clienteAuthenticatedClient.GetAsync($"/api/estoque/itens/{itemId}/disponibilidade?quantidadeRequisitada={quantidadeRequisitada}");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
     }
 }

@@ -1,6 +1,8 @@
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
 using Shared.Enums;
 using Tests.Application.Cadastros.Veiculo.Helpers;
+using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using VeiculoAggregate = Domain.Cadastros.Aggregates.Veiculo;
@@ -21,11 +23,12 @@ namespace Tests.Application.Cadastros.Veiculo
         public async Task ExecutarAsync_DeveRetornarListaDeVeiculos()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var veiculos = new List<VeiculoAggregate> { new VeiculoBuilder().Build(), new VeiculoBuilder().Build() };
             _fixture.VeiculoGatewayMock.AoObterTodos().Retorna(veiculos);
 
             // Act
-            await _fixture.BuscarVeiculosUseCase.ExecutarAsync(_fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculosPresenterMock.Object);
+            await _fixture.BuscarVeiculosUseCase.ExecutarAsync(ator, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculosPresenterMock.Object);
 
             // Assert
             _fixture.BuscarVeiculosPresenterMock.DeveTerApresentadoSucesso<IBuscarVeiculosPresenter, IEnumerable<VeiculoAggregate>>(veiculos);
@@ -37,11 +40,12 @@ namespace Tests.Application.Cadastros.Veiculo
         public async Task ExecutarAsync_DeveRetornarListaVazia_QuandoNaoHouverVeiculos()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var listaVazia = new List<VeiculoAggregate>();
             _fixture.VeiculoGatewayMock.AoObterTodos().Retorna(listaVazia);
 
             // Act
-            await _fixture.BuscarVeiculosUseCase.ExecutarAsync(_fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculosPresenterMock.Object);
+            await _fixture.BuscarVeiculosUseCase.ExecutarAsync(ator, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculosPresenterMock.Object);
 
             // Assert
             _fixture.BuscarVeiculosPresenterMock.DeveTerApresentadoSucesso<IBuscarVeiculosPresenter, IEnumerable<VeiculoAggregate>>(listaVazia);
@@ -53,13 +57,30 @@ namespace Tests.Application.Cadastros.Veiculo
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             _fixture.VeiculoGatewayMock.AoObterTodos().LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
-            await _fixture.BuscarVeiculosUseCase.ExecutarAsync(_fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculosPresenterMock.Object);
+            await _fixture.BuscarVeiculosUseCase.ExecutarAsync(ator, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculosPresenterMock.Object);
 
             // Assert
             _fixture.BuscarVeiculosPresenterMock.DeveTerApresentadoErro<IBuscarVeiculosPresenter, IEnumerable<VeiculoAggregate>>("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.BuscarVeiculosPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarVeiculosPresenter, IEnumerable<VeiculoAggregate>>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro NotAllowed quando usuário não é admin")]
+        [Trait("UseCase", "BuscarVeiculos")]
+        public async Task ExecutarAsync_DeveApresentarErroNotAllowed_QuandoUsuarioNaoEhAdmin()
+        {
+            // Arrange
+            var cliente = new ClienteBuilder().Build();
+            var ator = new AtorBuilder().ComoCliente(cliente.Id).Build();
+
+            // Act
+            await _fixture.BuscarVeiculosUseCase.ExecutarAsync(ator, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculosPresenterMock.Object);
+
+            // Assert
+            _fixture.BuscarVeiculosPresenterMock.DeveTerApresentadoErro<IBuscarVeiculosPresenter, IEnumerable<VeiculoAggregate>>("Acesso negado.", ErrorType.NotAllowed);
             _fixture.BuscarVeiculosPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarVeiculosPresenter, IEnumerable<VeiculoAggregate>>();
         }
     }

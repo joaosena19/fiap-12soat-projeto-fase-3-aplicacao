@@ -4,6 +4,7 @@ using Shared.Enums;
 using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
 
 namespace Tests.Application.OrdemServico
@@ -22,6 +23,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveAdicionarItemComSucesso_QuandoOrdemServicoExistirEItemEstoqueForValido()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var itemEstoque = new ItemEstoqueExternalDtoBuilder().Build();
             var quantidade = 2;
@@ -34,6 +36,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarItemUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 itemEstoque.Id,
                 quantidade,
@@ -60,6 +63,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoOrdemServicoNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServicoId = Guid.NewGuid();
             var itemEstoqueId = Guid.NewGuid();
             var quantidade = 1;
@@ -68,6 +72,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarItemUseCase.ExecutarAsync(
+                ator,
                 ordemServicoId,
                 itemEstoqueId,
                 quantidade,
@@ -85,6 +90,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErro_QuandoItemEstoqueNaoExistir()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var itemEstoqueId = Guid.NewGuid();
             var quantidade = 1;
@@ -94,6 +100,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarItemUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 itemEstoqueId,
                 quantidade,
@@ -111,6 +118,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroDominio_QuandoOcorrerDomainException()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var itemEstoque = new ItemEstoqueExternalDtoBuilder().Build();
             var quantidadeInvalida = -1; // Quantidade inválida para provocar DomainException
@@ -120,6 +128,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarItemUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 itemEstoque.Id,
                 quantidadeInvalida,
@@ -137,6 +146,7 @@ namespace Tests.Application.OrdemServico
         public async Task ExecutarAsync_DeveApresentarErroInterno_QuandoOcorrerExcecaoGenerica()
         {
             // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
             var ordemServico = new OrdemServicoBuilder().Build();
             var itemEstoque = new ItemEstoqueExternalDtoBuilder().Build();
             var quantidade = 1;
@@ -147,6 +157,7 @@ namespace Tests.Application.OrdemServico
 
             // Act
             await _fixture.AdicionarItemUseCase.ExecutarAsync(
+                ator,
                 ordemServico.Id,
                 itemEstoque.Id,
                 quantidade,
@@ -156,6 +167,31 @@ namespace Tests.Application.OrdemServico
 
             // Assert
             _fixture.AdicionarItemPresenterMock.DeveTerApresentadoErro<IAdicionarItemPresenter, OrdemServicoAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
+            _fixture.AdicionarItemPresenterMock.NaoDeveTerApresentadoSucesso<IAdicionarItemPresenter, OrdemServicoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve apresentar erro quando cliente tenta adicionar item em ordem de serviço")]
+        [Trait("UseCase", "AdicionarItem")]
+        public async Task ExecutarAsync_DeveApresentarErro_QuandoClienteTentaAdicionarItem()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var ordemServico = new OrdemServicoBuilder().Build();
+            var itemEstoque = new ItemEstoqueExternalDtoBuilder().Build();
+            var quantidade = 1;
+
+            // Act
+            await _fixture.AdicionarItemUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                itemEstoque.Id,
+                quantidade,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.EstoqueExternalServiceMock.Object,
+                _fixture.AdicionarItemPresenterMock.Object);
+
+            // Assert
+            _fixture.AdicionarItemPresenterMock.DeveTerApresentadoErro<IAdicionarItemPresenter, OrdemServicoAggregate>("Acesso negado. Apenas administradores podem gerenciar ordens de serviço.", ErrorType.NotAllowed);
             _fixture.AdicionarItemPresenterMock.NaoDeveTerApresentadoSucesso<IAdicionarItemPresenter, OrdemServicoAggregate>();
         }
     }

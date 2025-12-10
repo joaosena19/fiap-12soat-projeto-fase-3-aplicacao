@@ -1,9 +1,11 @@
 using API.Attributes;
 using API.Dtos;
 using API.Presenters.OrdemServico;
+using Application.Identidade.Services;
 using Application.OrdemServico.Dtos;
 using Infrastructure.Database;
 using Infrastructure.Handlers.OrdemServico;
+using Infrastructure.Repositories.Cadastros;
 using Infrastructure.Repositories.OrdemServico;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +18,7 @@ namespace API.Endpoints.OrdemServico
     [Route("api/ordens-servico")]
     [ApiController]
     [Produces("application/json")]
-    public class OrdemServicoController : ControllerBase
+    public class OrdemServicoController : BaseController
     {
         private readonly AppDbContext _context;
 
@@ -30,17 +32,20 @@ namespace API.Endpoints.OrdemServico
         /// </summary>
         /// <returns>Lista de ordens de serviço</returns>
         /// <response code="200">Lista de ordens de serviço retornada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores podem listar ordens de serviço</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<RetornoOrdemServicoCompletaDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get()
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new BuscarOrdensServicoPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.BuscarOrdensServicoAsync(gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.BuscarOrdensServicoAsync(ator, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -50,19 +55,23 @@ namespace API.Endpoints.OrdemServico
         /// <param name="id">ID da ordem de serviço</param>
         /// <returns>Ordem de serviço encontrada</returns>
         /// <response code="200">Ordem de serviço encontrada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores ou donos da ordem de serviço podem visualizá-la</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(RetornoOrdemServicoCompletaDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarOrdemServicoPorIdPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.BuscarOrdemServicoPorIdAsync(id, gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.BuscarOrdemServicoPorIdAsync(ator, id, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -72,19 +81,23 @@ namespace API.Endpoints.OrdemServico
         /// <param name="codigo">Código da ordem de serviço</param>
         /// <returns>Ordem de serviço encontrada</returns>
         /// <response code="200">Ordem de serviço encontrada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores ou donos da ordem de serviço podem visualizá-la</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("codigo/{codigo}")]
         [ProducesResponseType(typeof(RetornoOrdemServicoCompletaDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetByCodigo(string codigo)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarOrdemServicoPorCodigoPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.BuscarOrdemServicoPorCodigoAsync(codigo, gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.BuscarOrdemServicoPorCodigoAsync(ator, codigo, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -95,11 +108,13 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Ordem de serviço criada com sucesso</returns>
         /// <response code="201">Ordem de serviço criada com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado - apenas administradores podem criar ordens de serviço</response>
         /// <response code="422">Veículo não encontrado</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost]
         [ProducesResponseType(typeof(RetornoOrdemServicoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Post([FromBody] CriarOrdemServicoDto dto)
@@ -108,8 +123,9 @@ namespace API.Endpoints.OrdemServico
             var presenter = new CriarOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
             var veiculoExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.VeiculoExternalService(new Infrastructure.Repositories.Cadastros.VeiculoRepository(_context));
-            
-            await handler.CriarOrdemServicoAsync(dto.VeiculoId, gateway, veiculoExternalService, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.CriarOrdemServicoAsync(ator, dto.VeiculoId, gateway, veiculoExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -120,25 +136,27 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Ordem de serviço criada com sucesso</returns>
         /// <response code="201">Ordem de serviço criada com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado - apenas administradores podem criar ordens de serviço</response>
         /// <response code="422">Erro de validação ou regra de negócio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("completa")]
         [ProducesResponseType(typeof(RetornoOrdemServicoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CriarCompleta([FromBody] CriarOrdemServicoCompletaDto dto)
         {
             var ordemServicoGateway = new OrdemServicoRepository(_context);
-            var clienteGateway = new Infrastructure.Repositories.Cadastros.ClienteRepository(_context);
-            var veiculoGateway = new Infrastructure.Repositories.Cadastros.VeiculoRepository(_context);
-            var servicoGateway = new Infrastructure.Repositories.Cadastros.ServicoRepository(_context);
+            var clienteGateway = new ClienteRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
+            var servicoGateway = new ServicoRepository(_context);
             var itemEstoqueGateway = new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context);
-            
             var presenter = new CriarOrdemServicoCompletaPresenter();
-            var useCase = new Application.OrdemServico.UseCases.CriarOrdemServicoCompletaUseCase();
-            
-            await useCase.ExecutarAsync(dto, ordemServicoGateway, clienteGateway, veiculoGateway, servicoGateway, itemEstoqueGateway, presenter);
+            var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
+
+            await handler.CriarOrdemServicoCompletaAsync(ator, dto, ordemServicoGateway, clienteGateway, veiculoGateway, servicoGateway, itemEstoqueGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -161,12 +179,13 @@ namespace API.Endpoints.OrdemServico
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AdicionarServicos(Guid id, [FromBody] AdicionarServicosDto dto)
         {
+            var ator = BuscarAtorAtual();
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new AdicionarServicosPresenter();
             var handler = new OrdemServicoHandler();
 
             var servicoExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.ServicoExternalService(new Infrastructure.Repositories.Cadastros.ServicoRepository(_context));
-            await handler.AdicionarServicosAsync(id, dto.ServicosOriginaisIds, gateway, servicoExternalService, presenter);
+            await handler.AdicionarServicosAsync(ator, id, dto.ServicosOriginaisIds, gateway, servicoExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -189,12 +208,13 @@ namespace API.Endpoints.OrdemServico
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AdicionarItem(Guid id, [FromBody] AdicionarItemDto dto)
         {
+            var ator = BuscarAtorAtual();
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new AdicionarItemPresenter();
             var handler = new OrdemServicoHandler();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
-            await handler.AdicionarItemAsync(id, dto.ItemEstoqueOriginalId, dto.Quantidade, gateway, estoqueExternalService, presenter);
+            await handler.AdicionarItemAsync(ator, id, dto.ItemEstoqueOriginalId, dto.Quantidade, gateway, estoqueExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -205,11 +225,13 @@ namespace API.Endpoints.OrdemServico
         /// <param name="servicoIncluidoId">ID do serviço incluído a ser removido</param>
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Serviço removido com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço ou serviço não encontrado</response>
         /// <response code="422">Erros de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpDelete("{id}/servicos/{servicoIncluidoId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -218,8 +240,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.RemoverServicoAsync(id, servicoIncluidoId, gateway, presenter);
+            await handler.RemoverServicoAsync(ator, id, servicoIncluidoId, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -230,11 +253,13 @@ namespace API.Endpoints.OrdemServico
         /// <param name="itemIncluidoId">ID do item incluído a ser removido</param>
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Item removido com sucesso</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço ou item não encontrado</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpDelete("{id}/itens/{itemIncluidoId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -243,8 +268,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
             
-            await handler.RemoverItemAsync(id, itemIncluidoId, gateway, presenter);
+            await handler.RemoverItemAsync(ator, id, itemIncluidoId, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -254,11 +280,13 @@ namespace API.Endpoints.OrdemServico
         /// <param name="id">ID da ordem de serviço</param>
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Ordem de serviço cancelada com sucesso</response>
+        /// <response code="403">Acesso negado. Apenas administradores podem cancelar ordens de serviço</response>
         /// <response code="400">Dados inválidos fornecidos</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("{id}/cancelar")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Cancelar(Guid id)
@@ -266,8 +294,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
-            
-            await handler.CancelarAsync(id, gateway, presenter);
+            var ator = BuscarAtorAtual();
+
+            await handler.CancelarAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -278,12 +307,14 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Diagnóstico iniciado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("{id}/iniciar-diagnostico")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -292,8 +323,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.IniciarDiagnosticoAsync(id, gateway, presenter);
+            await handler.IniciarDiagnosticoAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -304,6 +336,7 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Orçamento gerado</returns>
         /// <response code="201">Orçamento gerado com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="409">Orçamento já foi gerado</response>
         /// <response code="422">Erro de regra do domínio</response>
@@ -311,6 +344,7 @@ namespace API.Endpoints.OrdemServico
         [HttpPost("{id}/orcamento")]
         [ProducesResponseType(typeof(RetornoOrcamentoDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
@@ -320,8 +354,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new GerarOrcamentoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.GerarOrcamentoAsync(id, gateway, presenter);
+            await handler.GerarOrcamentoAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -344,11 +379,13 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> AprovarOrcamento(Guid id)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
-            await handler.AprovarOrcamentoAsync(id, gateway, estoqueExternalService, presenter);
+            await handler.AprovarOrcamentoAsync(ator, id, gateway, veiculoGateway, estoqueExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -371,10 +408,12 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> DesaprovarOrcamento(Guid id)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.DesaprovarOrcamentoAsync(id, gateway, presenter);
+            await handler.DesaprovarOrcamentoAsync(ator, id, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -385,12 +424,14 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Execução finalizada com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("{id}/finalizar-execucao")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -399,8 +440,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.FinalizarExecucaoAsync(id, gateway, presenter);
+            await handler.FinalizarExecucaoAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -411,12 +453,14 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Nenhum conteúdo</returns>
         /// <response code="204">Ordem de serviço entregue com sucesso</response>
         /// <response code="400">Dados inválidos fornecidos</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="404">Ordem de serviço não encontrada</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpPost("{id}/entregar")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
@@ -425,8 +469,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.EntregarAsync(id, gateway, presenter);
+            await handler.EntregarAsync(ator, id, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -437,11 +482,13 @@ namespace API.Endpoints.OrdemServico
         /// <returns>Dados sobre o tempo médio de execução</returns>
         /// <response code="200">Tempo médio calculado com sucesso</response>
         /// <response code="400">Parâmetros inválidos ou nenhuma ordem encontrada</response>
+        /// <response code="403">Acesso negado</response>
         /// <response code="422">Erro de regra do domínio</response>
         /// <response code="500">Erro interno do servidor</response>
         [HttpGet("tempo-medio")]
         [ProducesResponseType(typeof(RetornoTempoMedioDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ObterTempoMedio([FromQuery] int quantidadeDias = 365)
@@ -449,8 +496,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new ObterTempoMedioPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = BuscarAtorAtual();
 
-            await handler.ObterTempoMedioAsync(quantidadeDias, gateway, presenter);
+            await handler.ObterTempoMedioAsync(ator, quantidadeDias, gateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -497,11 +545,13 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> WebhookAprovarOrcamento([FromBody] WebhookIdDto dto)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = Ator.Sistema();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
-            await handler.AprovarOrcamentoAsync(dto.Id, gateway, estoqueExternalService, presenter);
+            await handler.AprovarOrcamentoAsync(ator, dto.Id, gateway, veiculoGateway, estoqueExternalService, presenter);
             return presenter.ObterResultado();
         }
 
@@ -528,10 +578,12 @@ namespace API.Endpoints.OrdemServico
         public async Task<IActionResult> WebhookDesaprovarOrcamento([FromBody] WebhookIdDto dto)
         {
             var gateway = new OrdemServicoRepository(_context);
+            var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = Ator.Sistema();
 
-            await handler.DesaprovarOrcamentoAsync(dto.Id, gateway, presenter);
+            await handler.DesaprovarOrcamentoAsync(ator, dto.Id, gateway, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }
 
@@ -560,8 +612,9 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
             var handler = new OrdemServicoHandler();
+            var ator = Ator.Sistema();
 
-            await handler.AlterarStatusAsync(dto.Id, dto.Status, gateway, presenter);
+            await handler.AlterarStatusAsync(ator, dto.Id, dto.Status, gateway, presenter);
             return presenter.ObterResultado();
         }
     }

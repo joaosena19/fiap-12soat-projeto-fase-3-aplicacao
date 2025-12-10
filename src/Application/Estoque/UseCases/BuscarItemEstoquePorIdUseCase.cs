@@ -1,15 +1,23 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
+using Application.Identidade.Services;
+using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 
 namespace Application.Estoque.UseCases;
 
 public class BuscarItemEstoquePorIdUseCase
 {
-    public async Task ExecutarAsync(Guid id, IItemEstoqueGateway gateway, IBuscarItemEstoquePorIdPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid id, IItemEstoqueGateway gateway, IBuscarItemEstoquePorIdPresenter presenter)
     {
         try
         {
+            if (!ator.PodeGerenciarEstoque())
+            {
+                presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
+                return;
+            }
+
             var item = await gateway.ObterPorIdAsync(id);
             if (item == null)
             {
