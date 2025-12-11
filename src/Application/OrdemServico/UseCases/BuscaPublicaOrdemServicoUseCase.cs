@@ -1,8 +1,8 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.OrdemServico.Interfaces.External;
-using Application.Contracts;
 using Application.Extensions;
+using Application.Contracts.Monitoramento;
 
 namespace Application.OrdemServico.UseCases;
 

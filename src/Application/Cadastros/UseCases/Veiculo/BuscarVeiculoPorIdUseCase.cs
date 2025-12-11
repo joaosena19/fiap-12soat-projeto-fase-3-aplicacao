@@ -1,5 +1,5 @@
-using Application.Contracts;
 using Application.Contracts.Gateways;
+using Application.Contracts.Monitoramento;
 using Application.Contracts.Presenters;
 using Application.Extensions;
 using Application.Identidade.Services;

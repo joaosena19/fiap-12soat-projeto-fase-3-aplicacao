@@ -1,4 +1,4 @@
-using Application.Contracts;
+using Application.Contracts.Monitoramento;
 using Application.Identidade.Services;
 using Shared.Exceptions;
 

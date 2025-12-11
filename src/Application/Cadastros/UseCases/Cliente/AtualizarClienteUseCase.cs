@@ -4,8 +4,8 @@ using Application.Identidade.Services;
 using Application.Identidade.Services.Extensions;
 using Shared.Exceptions;
 using Shared.Enums;
-using Application.Contracts;
 using Application.Extensions;
+using Application.Contracts.Monitoramento;
 
 namespace Application.Cadastros.UseCases
 {

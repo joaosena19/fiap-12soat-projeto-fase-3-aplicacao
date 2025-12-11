@@ -7,9 +7,9 @@ using Domain.Cadastros.Aggregates;
 using Domain.OrdemServico.Enums;
 using Shared.Enums;
 using Shared.Exceptions;
-using Application.Contracts;
 using Application.Extensions;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
+using Application.Contracts.Monitoramento;
 
 namespace Application.OrdemServico.UseCases;
 

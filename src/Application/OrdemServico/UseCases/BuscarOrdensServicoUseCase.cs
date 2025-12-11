@@ -5,8 +5,8 @@ using Application.Identidade.Services.Extensions;
 using Domain.OrdemServico.Enums;
 using Shared.Enums;
 using Shared.Exceptions;
-using Application.Contracts;
 using Application.Extensions;
+using Application.Contracts.Monitoramento;
 
 namespace Application.OrdemServico.UseCases;
 

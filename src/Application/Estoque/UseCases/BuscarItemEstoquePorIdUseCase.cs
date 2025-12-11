@@ -4,8 +4,8 @@ using Application.Identidade.Services;
 using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 using Shared.Exceptions;
-using Application.Contracts;
 using Application.Extensions;
+using Application.Contracts.Monitoramento;
 
 namespace Application.Estoque.UseCases;
 

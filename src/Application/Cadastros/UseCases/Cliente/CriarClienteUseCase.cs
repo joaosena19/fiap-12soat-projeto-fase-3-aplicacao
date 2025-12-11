@@ -5,8 +5,8 @@ using Application.Identidade.Services.Extensions;
 using Domain.Cadastros.Aggregates;
 using Shared.Exceptions;
 using Shared.Enums;
-using Application.Contracts;
 using Application.Extensions;
+using Application.Contracts.Monitoramento;
 
 namespace Application.Cadastros.UseCases
 {

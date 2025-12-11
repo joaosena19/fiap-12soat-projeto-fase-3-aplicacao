@@ -1,4 +1,4 @@
-﻿using Application.Contracts;
+﻿using Application.Contracts.Monitoramento;
 using Infrastructure.Monitoramento;
 using Microsoft.Extensions.Logging;
 

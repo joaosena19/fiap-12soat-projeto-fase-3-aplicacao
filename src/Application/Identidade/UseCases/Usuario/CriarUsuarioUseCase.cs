@@ -8,9 +8,9 @@ using Domain.Identidade.Aggregates;
 using Domain.Identidade.ValueObjects;
 using Shared.Enums;
 using Shared.Exceptions;
-using Application.Contracts;
 using Application.Extensions;
 using UsuarioAggregate = Domain.Identidade.Aggregates.Usuario;
+using Application.Contracts.Monitoramento;
 
 namespace Application.Identidade.UseCases.Usuario
 {

@@ -1,4 +1,4 @@
-using Application.Contracts;
+using Application.Contracts.Monitoramento;
 using Moq;
 
 namespace Tests.Application.SharedHelpers
