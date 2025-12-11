@@ -26,6 +26,7 @@ namespace Tests.Application.Estoque
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemEsperado = new ItemEstoqueBuilder().Build();
+            var logger = MockLogger.CriarSimples();
 
             ItemEstoqueAggregate? itemCriado = null;
 
@@ -40,7 +41,8 @@ namespace Tests.Application.Estoque
                 itemEsperado.TipoItemEstoque.Valor,
                 itemEsperado.Preco.Valor,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.CriarItemEstoquePresenterMock.Object);
+                _fixture.CriarItemEstoquePresenterMock.Object,
+                logger);
 
             // Assert
             itemCriado.Should().NotBeNull();
@@ -67,6 +69,8 @@ namespace Tests.Application.Estoque
                 .ComNome("Filtro de Óleo")
                 .Build();
 
+            var logger = MockLogger.CriarSimples();
+
             _fixture.ItemEstoqueGatewayMock.AoObterPorNome(itemExistente.Nome.Valor).Retorna(itemExistente);
 
             // Act
@@ -77,10 +81,11 @@ namespace Tests.Application.Estoque
                 itemParaTentar.TipoItemEstoque.Valor,
                 itemParaTentar.Preco.Valor,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.CriarItemEstoquePresenterMock.Object);
+                _fixture.CriarItemEstoquePresenterMock.Object,
+                logger);
 
             // Assert
-            _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("existe um item de estoque cadastrado com este nome.", ErrorType.Conflict);
+            _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("Já existe um item de estoque cadastrado com este nome.", ErrorType.Conflict);
             _fixture.CriarItemEstoquePresenterMock.NaoDeveTerApresentadoSucesso<ICriarItemEstoquePresenter, ItemEstoqueAggregate>();
         }
 
@@ -94,6 +99,7 @@ namespace Tests.Application.Estoque
             var quantidadeValida = 10;
             var tipoValido = TipoItemEstoqueEnum.Peca;
             var precoValido = 100m;
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ItemEstoqueGatewayMock.AoObterPorNome(nomeInvalido).NaoRetornaNada();
 
@@ -105,7 +111,8 @@ namespace Tests.Application.Estoque
                 tipoValido,
                 precoValido,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.CriarItemEstoquePresenterMock.Object);
+                _fixture.CriarItemEstoquePresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("Nome não pode ser vazio", ErrorType.InvalidInput);
@@ -125,6 +132,8 @@ namespace Tests.Application.Estoque
                 .ComPreco(35.50m)
                 .Build();
 
+            var logger = MockLogger.CriarSimples();
+
             _fixture.ItemEstoqueGatewayMock.AoObterPorNome(itemParaCriar.Nome.Valor).NaoRetornaNada();
             _fixture.ItemEstoqueGatewayMock.AoSalvar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
@@ -136,7 +145,8 @@ namespace Tests.Application.Estoque
                 itemParaCriar.TipoItemEstoque.Valor,
                 itemParaCriar.Preco.Valor,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.CriarItemEstoquePresenterMock.Object);
+                _fixture.CriarItemEstoquePresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -150,6 +160,7 @@ namespace Tests.Application.Estoque
             // Arrange
             var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
             var itemParaCriar = new ItemEstoqueBuilder().Build();
+            var logger = MockLogger.CriarSimples();
 
             // Act
             await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
@@ -159,11 +170,62 @@ namespace Tests.Application.Estoque
                 itemParaCriar.TipoItemEstoque.Valor,
                 itemParaCriar.Preco.Valor,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.CriarItemEstoquePresenterMock.Object);
+                _fixture.CriarItemEstoquePresenterMock.Object,
+                logger);
 
             // Assert
-            _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
+            _fixture.CriarItemEstoquePresenterMock.DeveTerApresentadoErro<ICriarItemEstoquePresenter, ItemEstoqueAggregate>("Acesso negado. Apenas administradores podem criar estoque.", ErrorType.NotAllowed);
             _fixture.CriarItemEstoquePresenterMock.NaoDeveTerApresentadoSucesso<ICriarItemEstoquePresenter, ItemEstoqueAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "CriarItemEstoque")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var itemParaCriar = new ItemEstoqueBuilder().Build();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
+                ator,
+                itemParaCriar.Nome.Valor,
+                itemParaCriar.Quantidade.Valor,
+                itemParaCriar.TipoItemEstoque.Valor,
+                itemParaCriar.Preco.Valor,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.CriarItemEstoquePresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "CriarItemEstoque")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var itemParaCriar = new ItemEstoqueBuilder().ComNome("Filtro de Ar").Build();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ItemEstoqueGatewayMock.AoObterPorNome(itemParaCriar.Nome.Valor).NaoRetornaNada();
+            _fixture.ItemEstoqueGatewayMock.AoSalvar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.CriarItemEstoqueUseCase.ExecutarAsync(
+                ator,
+                itemParaCriar.Nome.Valor,
+                itemParaCriar.Quantidade.Valor,
+                itemParaCriar.TipoItemEstoque.Valor,
+                itemParaCriar.Preco.Valor,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.CriarItemEstoquePresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }
