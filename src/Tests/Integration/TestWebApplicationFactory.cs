@@ -36,7 +36,11 @@ namespace Tests.Integration
                     ["Webhook:HmacSecret"] = TestHmacUtils.TestHmacSecret,
                     ["Jwt:Key"] = JwtTestConstants.Key,
                     ["Jwt:Issuer"] = JwtTestConstants.Issuer,
-                    ["Jwt:Audience"] = JwtTestConstants.Audience
+                    ["Jwt:Audience"] = JwtTestConstants.Audience,
+                    ["Logging:LogLevel:Default"] = "None",
+                    ["Logging:LogLevel:Microsoft"] = "None",
+                    ["Logging:LogLevel:Microsoft.AspNetCore"] = "None",
+                    ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] = "None"
                 };
                 config.AddInMemoryCollection(overrides);
             });

@@ -15,9 +15,9 @@ public static class LoggerExtensions
     public static IAppLogger ComAtor(this IAppLogger logger, Ator ator)
     {
         return logger
-            .ComPropriedade("UsuarioId", ator.UsuarioId)
-            .ComPropriedade("ClienteId", ator.ClienteId)
-            .ComPropriedade("UsuarioRoles", ator.Roles.Select(r => r.ToString()).ToArray());
+            .ComPropriedade("Ator_UsuarioId", ator.UsuarioId)
+            .ComPropriedade("Ator_ClienteId", ator.ClienteId)
+            .ComPropriedade("Ator_UsuarioRoles", ator.Roles.Select(r => r.ToString()).ToArray());
     }
 
     public static IAppLogger ComDomainErrorType(this IAppLogger logger, DomainException ex)

@@ -11,6 +11,10 @@ namespace Shared.Exceptions
         /// Tipo de erro customizado
         /// </summary>
         public ErrorType ErrorType { get; }
+        
+        // Propriedades para o Log Estruturado
+        public string LogTemplate { get; }
+        public object[] LogArgs { get; }
 
         /// <summary>
         /// Construtor com valores padrão
@@ -21,6 +25,16 @@ namespace Shared.Exceptions
             : base(message)
         {
             ErrorType = errorType;
+            LogTemplate = message; // Default: Log igual msg do usuário
+            LogArgs = Array.Empty<object>();
+        }
+
+        public DomainException(string mensagemUsuario, ErrorType errorType, string logTemplate, params object[] logArgs) 
+            : base(mensagemUsuario)
+        {
+            ErrorType = errorType;
+            LogTemplate = logTemplate;
+            LogArgs = logArgs;
         }
     }
 }
