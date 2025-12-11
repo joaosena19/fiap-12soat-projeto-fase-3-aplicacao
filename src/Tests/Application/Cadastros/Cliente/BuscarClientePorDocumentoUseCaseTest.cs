@@ -27,11 +27,12 @@ namespace Tests.Application.Cadastros.Cliente
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var clienteExistente = new ClienteBuilder().Build();
             var documento = clienteExistente.DocumentoIdentificador.Valor;
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ClienteGatewayMock.AoObterPorDocumento(documento).Retorna(clienteExistente);
 
             // Act
-            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object);
+            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorDocumentoPresenterMock.DeveTerApresentadoSucesso<IBuscarClientePorDocumentoPresenter, ClienteAggregate>(clienteExistente);
@@ -45,11 +46,12 @@ namespace Tests.Application.Cadastros.Cliente
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var documento = new Faker("pt_BR").Random.Replace("###########");
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ClienteGatewayMock.AoObterPorDocumento(documento).NaoRetornaNada();
 
             // Act
-            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object);
+            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarClientePorDocumentoPresenter, ClienteAggregate>("Cliente não encontrado.", ErrorType.ResourceNotFound);
@@ -63,11 +65,12 @@ namespace Tests.Application.Cadastros.Cliente
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var documento = new Faker("pt_BR").Random.Replace("###########");
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ClienteGatewayMock.AoObterPorDocumento(documento).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
-            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object);
+            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarClientePorDocumentoPresenter, ClienteAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -83,11 +86,12 @@ namespace Tests.Application.Cadastros.Cliente
             var clienteId = clienteExistente.Id;
             var ator = new AtorBuilder().ComoCliente(clienteId).Build();
             var documento = clienteExistente.DocumentoIdentificador.Valor;
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ClienteGatewayMock.AoObterPorDocumento(documento).Retorna(clienteExistente);
 
             // Act
-            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object);
+            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorDocumentoPresenterMock.DeveTerApresentadoSucesso<IBuscarClientePorDocumentoPresenter, ClienteAggregate>(clienteExistente);
@@ -103,15 +107,52 @@ namespace Tests.Application.Cadastros.Cliente
             var ator = new AtorBuilder().ComoCliente(clienteId).Build();
             var clienteExistente = new ClienteBuilder().Build(); // Outro cliente diferente do ator
             var documento = clienteExistente.DocumentoIdentificador.Valor;
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ClienteGatewayMock.AoObterPorDocumento(documento).Retorna(clienteExistente);
 
             // Act
-            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object);
+            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorDocumentoPresenterMock.DeveTerApresentadoErro<IBuscarClientePorDocumentoPresenter, ClienteAggregate>("Acesso negado. Somente administradores ou o próprio cliente podem acessar os dados.", ErrorType.NotAllowed);
             _fixture.BuscarClientePorDocumentoPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarClientePorDocumentoPresenter, ClienteAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "BuscarClientePorDocumento")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var documento = new Faker("pt_BR").Random.Replace("###########");
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.ClienteGatewayMock.AoObterPorDocumento(documento).NaoRetornaNada();
+
+            // Act
+            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "BuscarClientePorDocumento")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var documento = new Faker("pt_BR").Random.Replace("###########");
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.ClienteGatewayMock.AoObterPorDocumento(documento).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.BuscarClientePorDocumentoUseCase.ExecutarAsync(ator, documento, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorDocumentoPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

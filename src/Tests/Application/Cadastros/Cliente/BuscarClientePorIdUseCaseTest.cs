@@ -24,10 +24,11 @@ namespace Tests.Application.Cadastros.Cliente
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var cliente = new ClienteBuilder().Build();
+            var logger = MockLogger.CriarSimples();
             _fixture.ClienteGatewayMock.AoObterPorId(cliente.Id).Retorna(cliente);
 
             // Act
-            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, cliente.Id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object);
+            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, cliente.Id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorIdPresenterMock.DeveTerApresentadoSucesso<IBuscarClientePorIdPresenter, ClienteAggregate>(cliente);
@@ -40,10 +41,11 @@ namespace Tests.Application.Cadastros.Cliente
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var id = Guid.NewGuid();
+            var logger = MockLogger.CriarSimples();
             _fixture.ClienteGatewayMock.AoObterPorId(id).NaoRetornaNada();
 
             // Act
-            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object);
+            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorIdPresenterMock.DeveTerApresentadoErro<IBuscarClientePorIdPresenter, ClienteAggregate>("Cliente não encontrado.", ErrorType.ResourceNotFound);
@@ -56,10 +58,11 @@ namespace Tests.Application.Cadastros.Cliente
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var id = Guid.NewGuid();
+            var logger = MockLogger.CriarSimples();
             _fixture.ClienteGatewayMock.AoObterPorId(id).LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
-            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object);
+            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorIdPresenterMock.DeveTerApresentadoErro<IBuscarClientePorIdPresenter, ClienteAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -73,11 +76,12 @@ namespace Tests.Application.Cadastros.Cliente
             var cliente = new ClienteBuilder().Build();
             var clienteId = cliente.Id;
             var ator = new AtorBuilder().ComoCliente(clienteId).Build();
+            var logger = MockLogger.CriarSimples();
             
             _fixture.ClienteGatewayMock.AoObterPorId(cliente.Id).Retorna(cliente);
 
             // Act
-            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, cliente.Id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object);
+            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, cliente.Id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorIdPresenterMock.DeveTerApresentadoSucesso<IBuscarClientePorIdPresenter, ClienteAggregate>(cliente);
@@ -91,15 +95,50 @@ namespace Tests.Application.Cadastros.Cliente
             var clienteId = Guid.NewGuid();
             var ator = new AtorBuilder().ComoCliente(clienteId).Build();
             var cliente = new ClienteBuilder().Build(); // Outro cliente diferente do ator
+            var logger = MockLogger.CriarSimples();
             
             _fixture.ClienteGatewayMock.AoObterPorId(cliente.Id).Retorna(cliente);
 
             // Act
-            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, cliente.Id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object);
+            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, cliente.Id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarClientePorIdPresenterMock.DeveTerApresentadoErro<IBuscarClientePorIdPresenter, ClienteAggregate>("Acesso negado. Somente administradores ou o próprio cliente podem acessar os dados.", ErrorType.NotAllowed);
             _fixture.BuscarClientePorIdPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarClientePorIdPresenter, ClienteAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "BuscarClientePorId")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var id = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ClienteGatewayMock.AoObterPorId(id).NaoRetornaNada();
+
+            // Act
+            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "BuscarClientePorId")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var id = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ClienteGatewayMock.AoObterPorId(id).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.BuscarClientePorIdUseCase.ExecutarAsync(ator, id, _fixture.ClienteGatewayMock.Object, _fixture.BuscarClientePorIdPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }
