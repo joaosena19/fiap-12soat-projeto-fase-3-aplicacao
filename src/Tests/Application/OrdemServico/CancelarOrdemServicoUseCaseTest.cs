@@ -32,7 +32,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoSucesso();
@@ -52,7 +53,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores podem cancelar ordens de serviço.", ErrorType.NotAllowed);
@@ -74,7 +76,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
@@ -99,7 +102,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro(domainException.Message, domainException.ErrorType);
@@ -123,11 +127,59 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve logar Information quando ator não for administrador")]
+        [Trait("UseCase", "CancelarOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoAtorNaoForAdministrador()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var ordemServicoId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.CancelarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar Error quando ocorrer exceção genérica")]
+        [Trait("UseCase", "CancelarOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerExcecaoGenerica()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var ordemServicoId = Guid.NewGuid();
+            var ordemServico = new OrdemServicoBuilder().Build();
+            var mockLogger = MockLogger.Criar();
+            var excecaoEsperada = new InvalidOperationException("Erro de banco de dados");
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).Retorna(ordemServico);
+            _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(excecaoEsperada);
+
+            // Act
+            await _fixture.CancelarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

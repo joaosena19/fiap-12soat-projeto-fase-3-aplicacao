@@ -48,7 +48,7 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             ordemServicoAtualizada.Should().NotBeNull();
@@ -83,7 +83,7 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.EstoqueExternalServiceMock.DeveTerAtualizadoQuantidade(itemIncluido.ItemEstoqueOriginalId, quantidadeEsperadaAposAtualizacao);
@@ -107,7 +107,7 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
@@ -138,7 +138,7 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             var itemIncluido = ordemServico.ItensIncluidos.First();
@@ -164,7 +164,7 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Não existe orçamento para aprovar. É necessário gerar o orçamento primeiro.", ErrorType.DomainRuleBroken);
@@ -194,7 +194,7 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -227,7 +227,7 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             ordemServicoAtualizada.Should().NotBeNull();
@@ -259,11 +259,60 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoGatewayMock.Object,
                 _fixture.EstoqueExternalServiceMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores ou donos da ordem de serviço podem aprovar orçamentos.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "AprovarOrcamento")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var ordemServicoId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
+                _fixture.EstoqueExternalServiceMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "AprovarOrcamento")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var ordemServicoId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+            
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.AprovarOrcamentoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoGatewayMock.Object,
+                _fixture.EstoqueExternalServiceMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
+            _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
         }
     }
 }

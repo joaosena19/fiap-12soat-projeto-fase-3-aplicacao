@@ -5,41 +5,32 @@ using Application.Identidade.Services;
 using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 using Shared.Exceptions;
+using Application.Contracts;
+using Application.Extensions;
 
 namespace Application.OrdemServico.UseCases;
 
 public class AdicionarServicosUseCase
 {
-    public async Task ExecutarAsync(Ator ator, Guid ordemServicoId, List<Guid> servicosOriginaisIds, IOrdemServicoGateway gateway, IServicoExternalService servicoExternalService, IAdicionarServicosPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid ordemServicoId, List<Guid> servicosOriginaisIds, IOrdemServicoGateway gateway, IServicoExternalService servicoExternalService, IAdicionarServicosPresenter presenter, IAppLogger logger)
     {
         try
         {
             if (!ator.PodeGerenciarOrdemServico())
-            {
-                presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar ordens de serviço.", ErrorType.NotAllowed);
-                return;
-            }
+                throw new DomainException("Acesso negado. Apenas administradores podem adicionar serviços.", ErrorType.NotAllowed, "Acesso negado para adicionar serviços na ordem de serviço {OrdemServicoId} para usuário {Ator_UsuarioId}", ordemServicoId, ator.UsuarioId);
+
             if (servicosOriginaisIds == null || servicosOriginaisIds.Count == 0)
-            {
-                presenter.ApresentarErro("É necessário informar ao menos um serviço para adicionar na Ordem de Serviço", ErrorType.InvalidInput);
-                return;
-            }
+                throw new DomainException("É necessário informar ao menos um serviço para adicionar na Ordem de Serviço", ErrorType.InvalidInput, "Lista de serviços vazia para ordem de serviço {OrdemServicoId} pelo usuário {Ator_UsuarioId}", ordemServicoId, ator.UsuarioId);
 
             var ordemServico = await gateway.ObterPorIdAsync(ordemServicoId);
             if (ordemServico == null)
-            {
-                presenter.ApresentarErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
-                return;
-            }
+                throw new DomainException("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound, "Ordem de serviço não encontrada para Id {OrdemServicoId}", ordemServicoId);
 
             foreach (var servicoId in servicosOriginaisIds)
             {
                 var servico = await servicoExternalService.ObterServicoPorIdAsync(servicoId);
                 if (servico == null)
-                {
-                    presenter.ApresentarErro($"Serviço com ID {servicoId} não encontrado.", ErrorType.ReferenceNotFound);
-                    return;
-                }
+                    throw new DomainException($"Serviço com ID {servicoId} não encontrado.", ErrorType.ReferenceNotFound, "Serviço não encontrado para Id {ServicoId}", servicoId);
 
                 ordemServico.AdicionarServico(servico.Id, servico.Nome, servico.Preco);
             }
@@ -49,10 +40,19 @@ public class AdicionarServicosUseCase
         }
         catch (DomainException ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .ComDomainErrorType(ex)
+                  .LogInformation(ex.LogTemplate, ex.LogArgs);
+
             presenter.ApresentarErro(ex.Message, ex.ErrorType);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .LogError(ex, "Erro interno do servidor.");
+
             presenter.ApresentarErro("Erro interno do servidor.", ErrorType.UnexpectedError);
         }
     }

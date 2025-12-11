@@ -2,6 +2,7 @@ using Application.Contracts.Presenters;
 using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
 
 namespace Tests.Application.OrdemServico
@@ -36,7 +37,7 @@ namespace Tests.Application.OrdemServico
                 documentoCliente,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteExternalServiceMock.Object,
-                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object);
+                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscaPublicaOrdemServicoPresenterMock.DeveTerApresentadoSucesso<IBuscaPublicaOrdemServicoPresenter, OrdemServicoAggregate>(ordemServico);
@@ -59,7 +60,7 @@ namespace Tests.Application.OrdemServico
                 documentoCliente,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteExternalServiceMock.Object,
-                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object);
+                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscaPublicaOrdemServicoPresenterMock.DeveTerApresentadoNaoEncontrado();
@@ -84,7 +85,7 @@ namespace Tests.Application.OrdemServico
                 documentoCliente,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteExternalServiceMock.Object,
-                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object);
+                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscaPublicaOrdemServicoPresenterMock.DeveTerApresentadoNaoEncontrado();
@@ -112,7 +113,7 @@ namespace Tests.Application.OrdemServico
                 documentoCliente,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteExternalServiceMock.Object,
-                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object);
+                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscaPublicaOrdemServicoPresenterMock.DeveTerApresentadoNaoEncontrado();
@@ -135,11 +136,36 @@ namespace Tests.Application.OrdemServico
                 documentoCliente,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ClienteExternalServiceMock.Object,
-                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object);
+                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscaPublicaOrdemServicoPresenterMock.DeveTerApresentadoNaoEncontrado();
             _fixture.BuscaPublicaOrdemServicoPresenterMock.NaoDeveTerApresentadoErro<IBuscaPublicaOrdemServicoPresenter, OrdemServicoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "BuscaPublicaOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var codigo = "OS-123456";
+            var documentoCliente = "12345678901";
+            var mockLogger = MockLogger.Criar();
+            
+            _fixture.OrdemServicoGatewayMock.AoObterPorCodigo(codigo).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.BuscaPublicaOrdemServicoUseCase.ExecutarAsync(
+                codigo,
+                documentoCliente,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.BuscaPublicaOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
+            _fixture.BuscaPublicaOrdemServicoPresenterMock.DeveTerApresentadoNaoEncontrado();
         }
     }
 }

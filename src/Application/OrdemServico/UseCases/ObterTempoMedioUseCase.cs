@@ -4,33 +4,26 @@ using Application.Identidade.Services;
 using Application.Identidade.Services.Extensions;
 using Shared.Enums;
 using Shared.Exceptions;
+using Application.Contracts;
+using Application.Extensions;
 
 namespace Application.OrdemServico.UseCases;
 
 public class ObterTempoMedioUseCase
 {
-    public async Task ExecutarAsync(Ator ator, int quantidadeDias, IOrdemServicoGateway gateway, IObterTempoMedioPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, int quantidadeDias, IOrdemServicoGateway gateway, IObterTempoMedioPresenter presenter, IAppLogger logger)
     {
         try
         {
             if (!ator.PodeGerenciarOrdemServico())
-            {
-                presenter.ApresentarErro("Acesso negado. Apenas administradores podem obter tempo médio de execução.", ErrorType.NotAllowed);
-                return;
-            }
+                throw new DomainException("Acesso negado. Apenas administradores podem obter tempo médio de execução.", ErrorType.NotAllowed, "Acesso negado para obter tempo médio pelo usuário ator {Ator_UsuarioId} com {QuantidadeDias} dias", ator.UsuarioId, quantidadeDias);
 
             if (quantidadeDias < 1 || quantidadeDias > 365)
-            {
-                presenter.ApresentarErro("A quantidade de dias deve estar entre 1 e 365.", ErrorType.InvalidInput);
-                return;
-            }
+                throw new DomainException("A quantidade de dias deve estar entre 1 e 365.", ErrorType.InvalidInput, "Quantidade de dias inválida: {QuantidadeDias}. Deve estar entre 1 e 365", quantidadeDias);
 
             var ordensEntregues = await gateway.ObterEntreguesUltimosDiasAsync(quantidadeDias);
             if (!ordensEntregues.Any())
-            {
-                presenter.ApresentarErro("Nenhuma ordem de serviço entregue encontrada no período especificado.", ErrorType.DomainRuleBroken);
-                return;
-            }
+                throw new DomainException("Nenhuma ordem de serviço entregue encontrada no período especificado.", ErrorType.DomainRuleBroken, "Nenhuma ordem entregue nos últimos {QuantidadeDias} dias", quantidadeDias);
 
             // Calcular tempo médio completo (criação até entrega)
             var duracaoCompleta = ordensEntregues
@@ -60,10 +53,19 @@ public class ObterTempoMedioUseCase
         }
         catch (DomainException ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .ComDomainErrorType(ex)
+                  .LogInformation(ex.LogTemplate, ex.LogArgs);
+
             presenter.ApresentarErro(ex.Message, ex.ErrorType);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .LogError(ex, "Erro interno do servidor.");
+
             presenter.ApresentarErro("Erro interno do servidor.", ErrorType.UnexpectedError);
         }
     }

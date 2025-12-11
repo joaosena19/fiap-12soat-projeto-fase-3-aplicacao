@@ -1,12 +1,14 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.OrdemServico.Interfaces.External;
+using Application.Contracts;
+using Application.Extensions;
 
 namespace Application.OrdemServico.UseCases;
 
 public class BuscaPublicaOrdemServicoUseCase
 {
-    public async Task ExecutarAsync(string codigoOrdemServico, string documentoIdentificadorCliente, IOrdemServicoGateway gateway, IClienteExternalService clienteExternalService, IBuscaPublicaOrdemServicoPresenter presenter)
+    public async Task ExecutarAsync(string codigoOrdemServico, string documentoIdentificadorCliente, IOrdemServicoGateway gateway, IClienteExternalService clienteExternalService, IBuscaPublicaOrdemServicoPresenter presenter, IAppLogger logger)
     {
         try
         {
@@ -33,8 +35,11 @@ public class BuscaPublicaOrdemServicoUseCase
 
             presenter.ApresentarSucesso(ordemServico);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.ComUseCase(this)
+                  .LogError(ex, "Erro interno do servidor.");
+
             // Para segurança, sempre retorna não encontrado em caso de erro
             presenter.ApresentarNaoEncontrado();
         }

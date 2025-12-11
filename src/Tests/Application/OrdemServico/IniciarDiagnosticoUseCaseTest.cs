@@ -4,6 +4,7 @@ using Shared.Exceptions;
 using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 
 namespace Tests.Application.OrdemServico
 {
@@ -29,11 +30,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoAtualizar().Retorna(ordemServico);
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoSucesso();
@@ -51,11 +54,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).NaoRetornaNada();
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
@@ -76,11 +81,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(domainException);
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro(domainException.Message, domainException.ErrorType);
@@ -100,11 +107,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -120,15 +129,63 @@ namespace Tests.Application.OrdemServico
             var ordemServicoId = Guid.NewGuid();
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores podem iniciar diagnósticos.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve logar information quando ocorrer DomainException")]
+        [Trait("UseCase", "IniciarDiagnostico")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = Ator.Cliente(Guid.NewGuid(), Guid.NewGuid());
+            var ordemServicoId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error quando ocorrer Exception")]
+        [Trait("UseCase", "IniciarDiagnostico")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerException()
+        {
+            // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
+            var ordemServicoId = Guid.NewGuid();
+            var ordemServico = new OrdemServicoBuilder().Build();
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).Retorna(ordemServico);
+            _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(new InvalidOperationException("Erro inesperado"));
+
+            // Act
+            await _fixture.IniciarDiagnosticoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }
