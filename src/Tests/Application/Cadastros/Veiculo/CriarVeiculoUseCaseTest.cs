@@ -7,16 +7,19 @@ using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using VeiculoAggregate = Domain.Cadastros.Aggregates.Veiculo;
+using Shared.Exceptions;
 
 namespace Tests.Application.Cadastros.Veiculo
 {
     public class CriarVeiculoUseCaseTest
     {
         private readonly VeiculoTestFixture _fixture;
+        private readonly MockLogger _mockLogger;
 
         public CriarVeiculoUseCaseTest()
         {
             _fixture = new VeiculoTestFixture();
+            _mockLogger = MockLogger.Criar();
         }
 
         [Fact(DisplayName = "Deve criar veículo com sucesso")]
@@ -35,7 +38,7 @@ namespace Tests.Application.Cadastros.Veiculo
             // Act
             await _fixture.CriarVeiculoUseCase.ExecutarAsync(
                 ator, cliente.Id, veiculo.Placa.Valor, veiculo.Modelo.Valor, "dd", veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
-                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object);
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarVeiculoPresenterMock.DeveTerApresentadoSucesso<ICriarVeiculoPresenter, VeiculoAggregate>(veiculo);
@@ -55,7 +58,7 @@ namespace Tests.Application.Cadastros.Veiculo
             // Act
             await _fixture.CriarVeiculoUseCase.ExecutarAsync(
                 ator, clienteId, veiculo.Placa.Valor, veiculo.Modelo.Valor, veiculo.Marca.Valor, veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
-                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object);
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, _mockLogger.Object);
 
             //Assert
             _fixture.CriarVeiculoPresenterMock.DeveTerApresentadoErro<ICriarVeiculoPresenter, VeiculoAggregate>("Cliente não encontrado para realizar associação com o veículo.", ErrorType.ReferenceNotFound);
@@ -76,7 +79,7 @@ namespace Tests.Application.Cadastros.Veiculo
             // Act
             await _fixture.CriarVeiculoUseCase.ExecutarAsync(
                 ator, cliente.Id, veiculo.Placa.Valor, veiculo.Modelo.Valor, veiculo.Marca.Valor, veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
-                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object);
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarVeiculoPresenterMock.DeveTerApresentadoErro<ICriarVeiculoPresenter, VeiculoAggregate>("Já existe um veículo cadastrado com esta placa.", ErrorType.Conflict);
@@ -98,7 +101,7 @@ namespace Tests.Application.Cadastros.Veiculo
             // Act
             await _fixture.CriarVeiculoUseCase.ExecutarAsync(
                 ator, cliente.Id, placaInvalida, "Modelo", "Marca", "Cor", 2023, TipoVeiculoEnum.Carro,
-                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object);
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarVeiculoPresenterMock.DeveTerApresentadoErro<ICriarVeiculoPresenter, VeiculoAggregate>("Placa não pode ser vazia", ErrorType.InvalidInput);
@@ -121,7 +124,7 @@ namespace Tests.Application.Cadastros.Veiculo
             // Act
             await _fixture.CriarVeiculoUseCase.ExecutarAsync(
                 ator, cliente.Id, veiculo.Placa.Valor, veiculo.Modelo.Valor, veiculo.Marca.Valor, veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
-                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object);
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarVeiculoPresenterMock.DeveTerApresentadoErro<ICriarVeiculoPresenter, VeiculoAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -144,7 +147,7 @@ namespace Tests.Application.Cadastros.Veiculo
             // Act
             await _fixture.CriarVeiculoUseCase.ExecutarAsync(
                 ator, cliente.Id, veiculo.Placa.Valor, veiculo.Modelo.Valor, veiculo.Marca.Valor, veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
-                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object);
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarVeiculoPresenterMock.DeveTerApresentadoSucesso<ICriarVeiculoPresenter, VeiculoAggregate>(veiculo);
@@ -164,11 +167,55 @@ namespace Tests.Application.Cadastros.Veiculo
             // Act
             await _fixture.CriarVeiculoUseCase.ExecutarAsync(
                 ator, clienteOutro.Id, veiculo.Placa.Valor, veiculo.Modelo.Valor, veiculo.Marca.Valor, veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
-                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object);
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarVeiculoPresenterMock.DeveTerApresentadoErro<ICriarVeiculoPresenter, VeiculoAggregate>("Acesso negado.", ErrorType.NotAllowed);
             _fixture.CriarVeiculoPresenterMock.NaoDeveTerApresentadoSucesso<ICriarVeiculoPresenter, VeiculoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information quando ocorrer DomainException")]
+        [Trait("UseCase", "CriarVeiculo")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoOcorrerDomainException()
+        {
+            // Arrange
+            var clienteDono = new ClienteBuilder().Build();
+            var clienteOutro = new ClienteBuilder().Build();
+            var ator = new AtorBuilder().ComoCliente(clienteDono.Id).Build();
+            var veiculo = new VeiculoBuilder().ComClienteId(clienteOutro.Id).Build();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.CriarVeiculoUseCase.ExecutarAsync(
+                ator, clienteOutro.Id, veiculo.Placa.Valor, veiculo.Modelo.Valor, veiculo.Marca.Valor, veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+            mockLogger.NaoDeveTerLogadoNenhumError();
+        }
+
+        [Fact(DisplayName = "Deve logar error quando ocorrer Exception")]
+        [Trait("UseCase", "CriarVeiculo")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var cliente = new ClienteBuilder().Build();
+            var veiculo = new VeiculoBuilder().ComClienteId(cliente.Id).Build();
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.ClienteGatewayMock.AoObterPorId(cliente.Id).Retorna(cliente);
+            _fixture.VeiculoGatewayMock.AoObterPorPlaca(veiculo.Placa.Valor).NaoRetornaNada();
+            _fixture.VeiculoGatewayMock.AoSalvar().LancaExcecao(new Exception("Falha inesperada"));
+
+            // Act
+            await _fixture.CriarVeiculoUseCase.ExecutarAsync(
+                ator, cliente.Id, veiculo.Placa.Valor, veiculo.Modelo.Valor, veiculo.Marca.Valor, veiculo.Cor.Valor, veiculo.Ano.Valor, veiculo.TipoVeiculo.Valor,
+                _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.CriarVeiculoPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }
