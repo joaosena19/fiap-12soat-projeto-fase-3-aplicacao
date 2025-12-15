@@ -7,6 +7,8 @@ using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Application.OrdemServico.Dtos;
+using Application.OrdemServico.Dtos.External;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
 
 namespace Tests.Application.OrdemServico
@@ -34,7 +36,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.CriarOrdemServicoPresenterMock.Verify(p => p.ApresentarErro("Acesso negado. Apenas administradores podem criar ordens de serviço.", ErrorType.NotAllowed), Times.Once);
@@ -61,7 +66,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             ordemServicoSalva.Should().NotBeNull();
@@ -87,7 +95,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.CriarOrdemServicoPresenterMock.Verify(p => p.ApresentarErro("Veículo não encontrado para criar a ordem de serviço.", ErrorType.ReferenceNotFound), Times.Once);
@@ -118,7 +129,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             ordemServicoSalva.Should().NotBeNull();
@@ -143,7 +157,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.CriarOrdemServicoPresenterMock.Verify(p => p.ApresentarErro("Erro de domínio personalizado", ErrorType.DomainRuleBroken), Times.Once);
@@ -168,7 +185,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.CriarOrdemServicoPresenterMock.Verify(p => p.ApresentarErro("Erro interno do servidor.", ErrorType.UnexpectedError), Times.Once);
@@ -195,7 +215,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.OrdemServicoGatewayMock.DeveTerVerificadoCodigoExistente();
@@ -221,7 +244,10 @@ namespace Tests.Application.OrdemServico
                 veiculoId,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
-                _fixture.CriarOrdemServicoPresenterMock.Object, MockLogger.CriarSimples());
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             ordemServicoSalva.Should().NotBeNull();
@@ -245,7 +271,9 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
                 _fixture.CriarOrdemServicoPresenterMock.Object,
-                mockLogger.Object);
+                mockLogger.Object,
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             mockLogger.DeveTerLogadoInformation();
@@ -272,10 +300,108 @@ namespace Tests.Application.OrdemServico
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.VeiculoExternalServiceMock.Object,
                 _fixture.CriarOrdemServicoPresenterMock.Object,
-                mockLogger.Object);
+                mockLogger.Object,
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             mockLogger.DeveTerLogadoErrorComException();
+        }
+
+        [Fact(DisplayName = "Deve registrar métrica de ordem de serviço criada")]
+        [Trait("UseCase", "CriarOrdemServico")]
+        public async Task ExecutarAsync_DeveRegistrarMetricaOrdemServicoCriada()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var veiculoId = Guid.NewGuid();
+            var clienteId = Guid.NewGuid();
+            var cliente = new ClienteExternalDtoBuilder().ComId(clienteId).Build();
+            OrdemServicoAggregate? ordemServicoSalva = null;
+
+            _fixture.VeiculoExternalServiceMock.AoVerificarExistenciaVeiculo(veiculoId).Retorna(true);
+            _fixture.OrdemServicoGatewayMock.AoObterPorCodigo(It.IsAny<string>()).NaoRetornaNada();
+            _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => ordemServicoSalva = os);
+            _fixture.ClienteExternalServiceMock.AoObterClientePorVeiculoId(veiculoId).Retorna(cliente);
+
+            // Act
+            await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                veiculoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoExternalServiceMock.Object,
+                _fixture.CriarOrdemServicoPresenterMock.Object, 
+                MockLogger.CriarSimples(),
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
+
+            // Assert
+            ordemServicoSalva.Should().NotBeNull();
+            _fixture.MetricsServiceMock.DeveTerRegistradoOrdemServicoCriada(ordemServicoSalva!.Id, clienteId, ator.UsuarioId);
+        }
+
+        [Fact(DisplayName = "Deve logar erro quando registro de métrica falhar")]
+        [Trait("UseCase", "CriarOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarErro_QuandoRegistroMetricaFalhar()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var veiculoId = Guid.NewGuid();
+            var clienteId = Guid.NewGuid();
+            var cliente = new ClienteExternalDtoBuilder().ComId(clienteId).Build();
+            var mockLogger = MockLogger.Criar();
+            var excecaoMetrica = new Exception("Erro ao registrar métrica");
+
+            _fixture.VeiculoExternalServiceMock.AoVerificarExistenciaVeiculo(veiculoId).Retorna(true);
+            _fixture.OrdemServicoGatewayMock.AoObterPorCodigo(It.IsAny<string>()).NaoRetornaNada();
+            _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => { });
+            _fixture.ClienteExternalServiceMock.AoObterClientePorVeiculoId(veiculoId).Retorna(cliente);
+            _fixture.MetricsServiceMock.AoRegistrarOrdemServicoCriada().LancaExcecao(excecaoMetrica);
+
+            // Act
+            await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                veiculoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoExternalServiceMock.Object,
+                _fixture.CriarOrdemServicoPresenterMock.Object,
+                mockLogger.Object,
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
+            _fixture.CriarOrdemServicoPresenterMock.Verify(p => p.ApresentarSucesso(It.IsAny<OrdemServicoAggregate>()), Times.Once);
+        }
+
+        [Fact(DisplayName = "Deve logar warning quando cliente for null ao registrar métrica")]
+        [Trait("UseCase", "CriarOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarWarning_QuandoClienteForNullAoRegistrarMetrica()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var veiculoId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.VeiculoExternalServiceMock.AoVerificarExistenciaVeiculo(veiculoId).Retorna(true);
+            _fixture.OrdemServicoGatewayMock.AoObterPorCodigo(It.IsAny<string>()).NaoRetornaNada();
+            _fixture.OrdemServicoGatewayMock.AoSalvar().ComCallback(os => { });
+            _fixture.ClienteExternalServiceMock.AoObterClientePorVeiculoId(veiculoId).NaoRetornaNada();
+
+            // Act
+            await _fixture.CriarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                veiculoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.VeiculoExternalServiceMock.Object,
+                _fixture.CriarOrdemServicoPresenterMock.Object,
+                mockLogger.Object,
+                _fixture.ClienteExternalServiceMock.Object,
+                _fixture.MetricsServiceMock.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoWarning();
+            _fixture.MetricsServiceMock.NaoDeveTerRegistradoOrdemServicoCriada();
         }
     }
 }

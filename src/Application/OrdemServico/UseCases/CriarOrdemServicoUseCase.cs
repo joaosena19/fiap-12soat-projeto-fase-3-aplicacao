@@ -13,7 +13,7 @@ namespace Application.OrdemServico.UseCases;
 
 public class CriarOrdemServicoUseCase
 {
-    public async Task ExecutarAsync(Ator ator, Guid veiculoId, IOrdemServicoGateway gateway, IVeiculoExternalService veiculoExternalService, ICriarOrdemServicoPresenter presenter, IAppLogger logger)
+    public async Task ExecutarAsync(Ator ator, Guid veiculoId, IOrdemServicoGateway gateway, IVeiculoExternalService veiculoExternalService, ICriarOrdemServicoPresenter presenter, IAppLogger logger, IClienteExternalService clienteExternalService, IMetricsService metricsService)
     {
         try
         {
@@ -35,6 +35,9 @@ public class CriarOrdemServicoUseCase
             } while (ordemServicoExistente != null);
 
             var result = await gateway.SalvarAsync(novaOrdemServico);
+
+            await RegistrarMetricaOrdemServicoCriadaAsync(result.Id, veiculoId, ator, clienteExternalService, metricsService, logger);
+
             presenter.ApresentarSucesso(result);
         }
         catch (DomainException ex)
@@ -53,6 +56,33 @@ public class CriarOrdemServicoUseCase
                   .LogError(ex, "Erro interno do servidor.");
 
             presenter.ApresentarErro("Erro interno do servidor.", ErrorType.UnexpectedError);
+        }
+    }
+
+    /// <summary>
+    /// Registra a métrica de ordem de serviço criada. Não lança exceções em caso de falha.
+    /// </summary>
+    private async Task RegistrarMetricaOrdemServicoCriadaAsync(Guid ordemServicoId, Guid veiculoId, Ator ator, IClienteExternalService clienteExternalService, IMetricsService metricsService, IAppLogger logger)
+    {
+        try
+        {
+            var cliente = await clienteExternalService.ObterClientePorVeiculoIdAsync(veiculoId);
+            if (cliente != null)
+            {
+                metricsService.RegistrarOrdemServicoCriada(ordemServicoId, cliente.Id, ator.UsuarioId);
+            }
+            else
+            {
+                logger.ComUseCase(this)
+                      .ComAtor(ator)
+                      .LogWarning("Cliente não encontrado para VeiculoId {VeiculoId} ao registrar métrica. OrdemServicoId: {OrdemServicoId}", veiculoId, ordemServicoId);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .LogError(ex, "Erro ao registrar métrica de ordem de serviço criada. OrdemServicoId: {OrdemServicoId}", ordemServicoId);
         }
     }
 }

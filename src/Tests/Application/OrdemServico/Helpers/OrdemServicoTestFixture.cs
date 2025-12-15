@@ -2,6 +2,7 @@ using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.OrdemServico.Interfaces.External;
 using Application.OrdemServico.UseCases;
+using Application.Contracts.Monitoramento;
 using Moq;
 
 namespace Tests.Application.OrdemServico.Helpers
@@ -24,6 +25,7 @@ namespace Tests.Application.OrdemServico.Helpers
         public Mock<IObterTempoMedioPresenter> ObterTempoMedioPresenterMock { get; }
         public Mock<IVeiculoExternalService> VeiculoExternalServiceMock { get; }
         public Mock<ICriarOrdemServicoPresenter> CriarOrdemServicoPresenterMock { get; }
+        public Mock<IMetricsService> MetricsServiceMock { get; }
 
         public AdicionarItemUseCase AdicionarItemUseCase { get; }
         public AdicionarServicosUseCase AdicionarServicosUseCase { get; }
@@ -62,6 +64,7 @@ namespace Tests.Application.OrdemServico.Helpers
             ObterTempoMedioPresenterMock = new Mock<IObterTempoMedioPresenter>();
             VeiculoExternalServiceMock = new Mock<IVeiculoExternalService>();
             CriarOrdemServicoPresenterMock = new Mock<ICriarOrdemServicoPresenter>();
+            MetricsServiceMock = new Mock<IMetricsService>();
 
             AdicionarItemUseCase = new AdicionarItemUseCase();
             AdicionarServicosUseCase = new AdicionarServicosUseCase();
