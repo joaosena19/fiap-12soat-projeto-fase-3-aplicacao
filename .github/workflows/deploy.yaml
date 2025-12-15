@@ -158,6 +158,7 @@ jobs:
             --from-literal=Jwt__Key=${{ secrets.JWT_KEY }} \
             --from-literal=ApiCredentials__ClientSecret=${{ secrets.API_CLIENT_SECRET }} \
             --from-literal=Webhook__HmacSecret=${{ secrets.WEBHOOK_HMAC_SECRET }} \
+            --from-literal=NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Atualizar ConfigMap do Kubernetes
