@@ -26,6 +26,7 @@ namespace Tests.Application.Cadastros.Servico
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoEsperado = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(150.00m).Build();
+            var logger = MockLogger.CriarSimples();
             ServicoAggregate? servicoCriado = null;
 
             _fixture.ServicoGatewayMock.AoObterPorNome(servicoEsperado.Nome.Valor).NaoRetornaNada();
@@ -34,7 +35,7 @@ namespace Tests.Application.Cadastros.Servico
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
                 ator, servicoEsperado.Nome.Valor, servicoEsperado.Preco.Valor,
-                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object, logger);
 
             // Assert
             servicoCriado.Should().NotBeNull();
@@ -52,14 +53,15 @@ namespace Tests.Application.Cadastros.Servico
             // Arrange
             var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
             var servicoEsperado = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(150.00m).Build();
+            var logger = MockLogger.CriarSimples();
 
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
                 ator, servicoEsperado.Nome.Valor, servicoEsperado.Preco.Valor,
-                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object, logger);
 
             // Assert
-            _fixture.CriarServicoPresenterMock.DeveTerApresentadoErro<ICriarServicoPresenter, ServicoAggregate>("Acesso negado. Apenas administradores podem gerenciar serviços.", ErrorType.NotAllowed);
+            _fixture.CriarServicoPresenterMock.DeveTerApresentadoErro<ICriarServicoPresenter, ServicoAggregate>("Acesso negado. Apenas administradores podem criar serviços.", ErrorType.NotAllowed);
             _fixture.CriarServicoPresenterMock.NaoDeveTerApresentadoSucesso<ICriarServicoPresenter, ServicoAggregate>();
         }
 
@@ -71,13 +73,14 @@ namespace Tests.Application.Cadastros.Servico
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoExistente = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(100m).Build();
             var servicoParaTentar = new ServicoBuilder().ComNome(servicoExistente.Nome.Valor).ComPreco(150m).Build();
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ServicoGatewayMock.AoObterPorNome(servicoExistente.Nome.Valor).Retorna(servicoExistente);
 
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
                 ator, servicoParaTentar.Nome.Valor, servicoParaTentar.Preco.Valor,
-                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object, logger);
 
             // Assert
             _fixture.CriarServicoPresenterMock.DeveTerApresentadoErro<ICriarServicoPresenter, ServicoAggregate>("Já existe um serviço cadastrado com este nome.", ErrorType.Conflict);
@@ -92,13 +95,14 @@ namespace Tests.Application.Cadastros.Servico
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var nomeInvalido = "";
             var precoValido = 100m;
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ServicoGatewayMock.AoObterPorNome(nomeInvalido).NaoRetornaNada();
 
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
                 ator, nomeInvalido, precoValido,
-                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object, logger);
 
             // Assert
             _fixture.CriarServicoPresenterMock.DeveTerApresentadoErro<ICriarServicoPresenter, ServicoAggregate>("Nome não pode ser vazio", ErrorType.InvalidInput);
@@ -112,6 +116,7 @@ namespace Tests.Application.Cadastros.Servico
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicoParaCriar = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(150m).Build();
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ServicoGatewayMock.AoObterPorNome(servicoParaCriar.Nome.Valor).NaoRetornaNada();
             _fixture.ServicoGatewayMock.AoSalvar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
@@ -119,11 +124,50 @@ namespace Tests.Application.Cadastros.Servico
             // Act
             await _fixture.CriarServicoUseCase.ExecutarAsync(
                 ator, servicoParaCriar.Nome.Valor, servicoParaCriar.Preco.Valor,
-                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object);
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object, logger);
 
             // Assert
             _fixture.CriarServicoPresenterMock.DeveTerApresentadoErro<ICriarServicoPresenter, ServicoAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
             _fixture.CriarServicoPresenterMock.NaoDeveTerApresentadoSucesso<ICriarServicoPresenter, ServicoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "CriarServico")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var servicoExistente = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(100m).Build();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ServicoGatewayMock.AoObterPorNome(servicoExistente.Nome.Valor).Retorna(servicoExistente);
+
+            // Act
+            await _fixture.CriarServicoUseCase.ExecutarAsync(
+                ator, servicoExistente.Nome.Valor, 150m,
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "CriarServico")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var servicoParaCriar = new ServicoBuilder().ComNome("Troca de Óleo").ComPreco(150m).Build();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ServicoGatewayMock.AoObterPorNome(servicoParaCriar.Nome.Valor).NaoRetornaNada();
+            _fixture.ServicoGatewayMock.AoSalvar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.CriarServicoUseCase.ExecutarAsync(
+                ator, servicoParaCriar.Nome.Valor, servicoParaCriar.Preco.Valor,
+                _fixture.ServicoGatewayMock.Object, _fixture.CriarServicoPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

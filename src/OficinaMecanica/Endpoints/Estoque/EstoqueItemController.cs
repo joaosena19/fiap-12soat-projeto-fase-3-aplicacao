@@ -6,6 +6,7 @@ using Infrastructure.Database;
 using Infrastructure.Handlers.Estoque;
 using Infrastructure.Repositories.Estoque;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace API.Endpoints.Estoque
 {
@@ -19,7 +20,7 @@ namespace API.Endpoints.Estoque
     {
         private readonly AppDbContext _context;
 
-        public EstoqueItemController(AppDbContext context)
+        public EstoqueItemController(AppDbContext context, ILoggerFactory loggerFactory) : base(loggerFactory)
         {
             _context = context;
         }
@@ -37,7 +38,7 @@ namespace API.Endpoints.Estoque
         {
             var gateway = new ItemEstoqueRepository(_context);
             var presenter = new BuscarTodosItensEstoquePresenter();
-            var handler = new ItemEstoqueHandler();
+            var handler = new ItemEstoqueHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarTodosItensEstoqueAsync(ator, gateway, presenter);
@@ -60,7 +61,7 @@ namespace API.Endpoints.Estoque
         {
             var gateway = new ItemEstoqueRepository(_context);
             var presenter = new BuscarItemEstoquePorIdPresenter();
-            var handler = new ItemEstoqueHandler();
+            var handler = new ItemEstoqueHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarItemEstoquePorIdAsync(ator, id, gateway, presenter);
@@ -83,7 +84,7 @@ namespace API.Endpoints.Estoque
         {
             var gateway = new ItemEstoqueRepository(_context);
             var presenter = new CriarItemEstoquePresenter();
-            var handler = new ItemEstoqueHandler();
+            var handler = new ItemEstoqueHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.CriarItemEstoqueAsync(ator, dto.Nome, dto.Quantidade, dto.TipoItemEstoque, dto.Preco, gateway, presenter);
@@ -109,7 +110,7 @@ namespace API.Endpoints.Estoque
         {
             var gateway = new ItemEstoqueRepository(_context);
             var presenter = new AtualizarItemEstoquePresenter();
-            var handler = new ItemEstoqueHandler();
+            var handler = new ItemEstoqueHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.AtualizarItemEstoqueAsync(ator, id, dto.Nome, dto.Quantidade, dto.TipoItemEstoque, dto.Preco, gateway, presenter);
@@ -135,7 +136,7 @@ namespace API.Endpoints.Estoque
         {
             var gateway = new ItemEstoqueRepository(_context);
             var presenter = new AtualizarQuantidadePresenter();
-            var handler = new ItemEstoqueHandler();
+            var handler = new ItemEstoqueHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.AtualizarQuantidadeAsync(ator, id, dto.Quantidade, gateway, presenter);
@@ -161,7 +162,7 @@ namespace API.Endpoints.Estoque
         {
             var gateway = new ItemEstoqueRepository(_context);
             var presenter = new VerificarDisponibilidadePresenter();
-            var handler = new ItemEstoqueHandler();
+            var handler = new ItemEstoqueHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.VerificarDisponibilidadeAsync(ator, id, quantidadeRequisitada, gateway, presenter);

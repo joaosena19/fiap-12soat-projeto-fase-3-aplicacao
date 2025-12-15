@@ -8,16 +8,19 @@ using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
 using ClienteAggregate = Domain.Cadastros.Aggregates.Cliente;
 using UsuarioAggregate = Domain.Identidade.Aggregates.Usuario;
+using Shared.Exceptions;
 
 namespace Tests.Application.Cadastros.Cliente
 {
     public class CriarClienteUseCaseTest
     {
         private readonly ClienteTestFixture _fixture;
+        private readonly MockLogger _mockLogger;
 
         public CriarClienteUseCaseTest()
         {
             _fixture = new ClienteTestFixture();
+            _mockLogger = MockLogger.Criar();
         }
 
         [Fact(DisplayName = "Deve criar cliente com sucesso quando usuário é admin")]
@@ -29,7 +32,7 @@ namespace Tests.Application.Cadastros.Cliente
             _fixture.ClienteGatewayMock.AoSalvar().Retorna(cliente);
 
             // Act
-            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, cliente.Nome.Valor, cliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object);
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, cliente.Nome.Valor, cliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarClientePresenterMock.DeveTerApresentadoSucessoComQualquerObjeto<ICriarClientePresenter, ClienteAggregate>();
@@ -50,7 +53,7 @@ namespace Tests.Application.Cadastros.Cliente
             _fixture.ClienteGatewayMock.AoSalvar().Retorna(novoCliente);
 
             // Act
-            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, novoCliente.Nome.Valor, novoCliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object);
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, novoCliente.Nome.Valor, novoCliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarClientePresenterMock.DeveTerApresentadoSucessoComQualquerObjeto<ICriarClientePresenter, ClienteAggregate>();
@@ -69,7 +72,7 @@ namespace Tests.Application.Cadastros.Cliente
             _fixture.UsuarioGatewayMock.AoObterPorId(usuario.Id).Retorna(usuario);
 
             // Act
-            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, "Nome Qualquer", documentoDiferente, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object);
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, "Nome Qualquer", documentoDiferente, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarClientePresenterMock.DeveTerApresentadoErro<ICriarClientePresenter, ClienteAggregate>("Acesso negado. Administradores podem cadastrar qualquer cliente, usuários podem criar cliente apenas com o mesmo documento.", ErrorType.NotAllowed);
@@ -85,7 +88,7 @@ namespace Tests.Application.Cadastros.Cliente
             _fixture.ClienteGatewayMock.AoObterPorDocumento(cliente.DocumentoIdentificador.Valor).Retorna(cliente);
 
             // Act
-            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, cliente.Nome.Valor, cliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object);
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, cliente.Nome.Valor, cliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarClientePresenterMock.DeveTerApresentadoErro<ICriarClientePresenter, ClienteAggregate>("Já existe um cliente cadastrado com este documento.", ErrorType.Conflict);
@@ -103,7 +106,7 @@ namespace Tests.Application.Cadastros.Cliente
             _fixture.ClienteGatewayMock.AoObterPorDocumento(documentoValido).NaoRetornaNada();
 
             // Act
-            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, nomeInvalido, documentoValido, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object);
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, nomeInvalido, documentoValido, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarClientePresenterMock.DeveTerApresentadoErro<ICriarClientePresenter, ClienteAggregate>("Nome não pode ser vazio", ErrorType.InvalidInput);
@@ -121,11 +124,51 @@ namespace Tests.Application.Cadastros.Cliente
             _fixture.ClienteGatewayMock.AoSalvar().LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
-            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, cliente.Nome.Valor, cliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object);
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, cliente.Nome.Valor, cliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, _mockLogger.Object);
 
             // Assert
             _fixture.CriarClientePresenterMock.DeveTerApresentadoErro<ICriarClientePresenter, ClienteAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
             _fixture.CriarClientePresenterMock.NaoDeveTerApresentadoSucesso<ICriarClientePresenter, ClienteAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information quando ocorrer DomainException")]
+        [Trait("UseCase", "CriarCliente")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoOcorrerDomainException()
+        {
+            // Arrange
+            var documentoUsuario = new ClienteBuilder().ComCpfValido().Build().DocumentoIdentificador.Valor;
+            var documentoDiferente = new ClienteBuilder().ComCpfValido().Build().DocumentoIdentificador.Valor;
+            var usuario = new UsuarioBuilder().ComDocumento(documentoUsuario).Build();
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).ComUsuario(usuario.Id).Build();
+            var mockLogger = MockLogger.Criar();
+            
+            _fixture.UsuarioGatewayMock.AoObterPorId(usuario.Id).Retorna(usuario);
+
+            // Act
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, "Nome Qualquer", documentoDiferente, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+            mockLogger.NaoDeveTerLogadoNenhumError();
+        }
+
+        [Fact(DisplayName = "Deve logar error quando ocorrer Exception")]
+        [Trait("UseCase", "CriarCliente")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerException()
+        {
+            // Arrange
+            var cliente = new ClienteBuilder().Build();
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.ClienteGatewayMock.AoObterPorDocumento(cliente.DocumentoIdentificador.Valor).NaoRetornaNada();
+            _fixture.ClienteGatewayMock.AoSalvar().LancaExcecao(new Exception("Falha inesperada"));
+
+            // Act
+            await _fixture.CriarClienteUseCase.ExecutarAsync(ator, cliente.Nome.Valor, cliente.DocumentoIdentificador.Valor, _fixture.ClienteGatewayMock.Object, _fixture.UsuarioGatewayMock.Object, _fixture.CriarClientePresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

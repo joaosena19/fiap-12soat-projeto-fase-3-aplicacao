@@ -34,7 +34,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorClienteId(cliente.Id).Retorna(veiculos);
 
             // Act
-            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, cliente.Id, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object);
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, cliente.Id, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculosPorClientePresenterMock.DeveTerApresentadoSucesso<IBuscarVeiculosPorClientePresenter, IEnumerable<VeiculoAggregate>>(veiculos);
@@ -51,7 +51,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.ClienteGatewayMock.AoObterPorId(clienteId).NaoRetornaNada();
 
             // Act
-            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, clienteId, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object);
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, clienteId, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculosPorClientePresenterMock.DeveTerApresentadoErro<IBuscarVeiculosPorClientePresenter, IEnumerable<VeiculoAggregate>>("Cliente não encontrado.", ErrorType.ReferenceNotFound);
@@ -71,7 +71,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorClienteId(cliente.Id).Retorna(listaVazia);
 
             // Act
-            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, cliente.Id, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object);
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, cliente.Id, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculosPorClientePresenterMock.DeveTerApresentadoSucesso<IBuscarVeiculosPorClientePresenter, IEnumerable<VeiculoAggregate>>(listaVazia);
@@ -89,7 +89,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorClienteId(cliente.Id).LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
-            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, cliente.Id, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object);
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, cliente.Id, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculosPorClientePresenterMock.DeveTerApresentadoErro<IBuscarVeiculosPorClientePresenter, IEnumerable<VeiculoAggregate>>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -113,7 +113,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorClienteId(clienteId).Retorna(veiculos);
 
             // Act
-            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, clienteId, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object);
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, clienteId, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculosPorClientePresenterMock.DeveTerApresentadoSucesso<IBuscarVeiculosPorClientePresenter, IEnumerable<VeiculoAggregate>>(veiculos);
@@ -133,11 +133,48 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.ClienteGatewayMock.AoObterPorId(outroClienteId).Retorna(outroCliente);
 
             // Act
-            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, outroClienteId, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object);
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, outroClienteId, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculosPorClientePresenterMock.DeveTerApresentadoErro<IBuscarVeiculosPorClientePresenter, IEnumerable<VeiculoAggregate>>("Acesso negado. Somente administradores ou o próprio cliente podem visualizar seus veículos.", ErrorType.NotAllowed);
             _fixture.BuscarVeiculosPorClientePresenterMock.NaoDeveTerApresentadoSucesso<IBuscarVeiculosPorClientePresenter, IEnumerable<VeiculoAggregate>>();
+        }
+
+        [Fact(DisplayName = "Deve logar information quando DomainException for lançada")]
+        [Trait("UseCase", "BuscarVeiculosPorCliente")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoDomainExceptionForLancada()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var clienteId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.ClienteGatewayMock.AoObterPorId(clienteId).NaoRetornaNada();
+
+            // Act
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, clienteId, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error quando Exception for lançada")]
+        [Trait("UseCase", "BuscarVeiculosPorCliente")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoExceptionForLancada()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var cliente = new ClienteBuilder().Build();
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.ClienteGatewayMock.AoObterPorId(cliente.Id).Retorna(cliente);
+            _fixture.VeiculoGatewayMock.AoObterPorClienteId(cliente.Id).LancaExcecao(new Exception("Falha inesperada"));
+
+            // Act
+            await _fixture.BuscarVeiculosPorClienteUseCase.ExecutarAsync(ator, cliente.Id, _fixture.VeiculoGatewayMock.Object, _fixture.ClienteGatewayMock.Object, _fixture.BuscarVeiculosPorClientePresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

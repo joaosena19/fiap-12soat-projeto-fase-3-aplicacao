@@ -36,11 +36,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).Retorna(ordensEntregues);
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarSucesso(
@@ -64,11 +66,13 @@ namespace Tests.Application.OrdemServico
             var quantidadeDias = 0;
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarErro(
@@ -95,11 +99,13 @@ namespace Tests.Application.OrdemServico
             var quantidadeDias = 366;
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarErro(
@@ -127,11 +133,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).RetornaListaVazia();
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarErro(
@@ -161,11 +169,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).LancaExcecao(domainException);
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarErro(
@@ -194,11 +204,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarErro(
@@ -225,11 +237,13 @@ namespace Tests.Application.OrdemServico
             var quantidadeDias = 30;
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarErro(
@@ -274,11 +288,13 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).Retorna(ordensEntregues);
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
                 ator,
                 quantidadeDias,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.ObterTempoMedioPresenterMock.Object);
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.ObterTempoMedioPresenterMock.Verify(p => p.ApresentarSucesso(
@@ -325,6 +341,50 @@ namespace Tests.Application.OrdemServico
             }
 
             return ordem;
+        }
+
+        [Fact(DisplayName = "Deve logar information quando ocorrer DomainException")]
+        [Trait("UseCase", "ObterTempoMedio")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var quantidadeDias = 30;
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
+                quantidadeDias,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error quando ocorrer Exception")]
+        [Trait("UseCase", "ObterTempoMedio")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var quantidadeDias = 30;
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.OrdemServicoGatewayMock.AoObterEntreguesUltimosDias(quantidadeDias).LancaExcecao(new InvalidOperationException("Erro inesperado"));
+
+            // Act
+            await _fixture.ObterTempoMedioUseCase.ExecutarAsync(
+                ator,
+                quantidadeDias,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ObterTempoMedioPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

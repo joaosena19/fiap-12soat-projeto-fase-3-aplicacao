@@ -5,27 +5,23 @@ using Application.Identidade.Services.Extensions;
 using Application.OrdemServico.Interfaces.External;
 using Shared.Enums;
 using Shared.Exceptions;
+using Application.Extensions;
+using Application.Contracts.Monitoramento;
 
 namespace Application.OrdemServico.UseCases;
 
 public class AprovarOrcamentoUseCase
 {
-    public async Task ExecutarAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IEstoqueExternalService estoqueExternalService, IOperacaoOrdemServicoPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, Guid ordemServicoId, IOrdemServicoGateway gateway, IVeiculoGateway veiculoGateway, IEstoqueExternalService estoqueExternalService, IOperacaoOrdemServicoPresenter presenter, IAppLogger logger)
     {
         try
         {
             var ordemServico = await gateway.ObterPorIdAsync(ordemServicoId);
             if (ordemServico == null)
-            {
-                presenter.ApresentarErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
-                return;
-            }
+                throw new DomainException("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound, "Ordem de serviço não encontrada para Id {OrdemServicoId}", ordemServicoId);
 
             if (!await ator.PodeAprovarDesaprovarOrcamento(ordemServico, veiculoGateway))
-            {
-                presenter.ApresentarErro("Acesso negado. Apenas administradores ou donos da ordem de serviço podem aprovar orçamentos.", ErrorType.NotAllowed);
-                return;
-            }
+                throw new DomainException("Acesso negado. Apenas administradores ou donos da ordem de serviço podem aprovar orçamentos.", ErrorType.NotAllowed, "Acesso negado para aprovar orçamento da ordem de serviço {OrdemServicoId} para usuário {Ator_UsuarioId}", ordemServicoId, ator.UsuarioId);
 
             // Verificar disponibilidade dos itens no estoque antes de aprovar o orçamento
             foreach (var itemIncluido in ordemServico.ItensIncluidos)
@@ -33,10 +29,7 @@ public class AprovarOrcamentoUseCase
                 var disponivel = await estoqueExternalService.VerificarDisponibilidadeAsync(itemIncluido.ItemEstoqueOriginalId, itemIncluido.Quantidade.Valor);
 
                 if (!disponivel)
-                {
-                    presenter.ApresentarErro($"Item '{itemIncluido.Nome.Valor}' não está disponível no estoque na quantidade necessária ({itemIncluido.Quantidade.Valor}).", ErrorType.DomainRuleBroken);
-                    return;
-                }
+                    throw new DomainException($"Item '{itemIncluido.Nome.Valor}' não está disponível no estoque na quantidade necessária ({itemIncluido.Quantidade.Valor}).", ErrorType.DomainRuleBroken, "Item {ItemId} não disponível no estoque para quantidade {Quantidade} na ordem {OrdemServicoId}", itemIncluido.ItemEstoqueOriginalId, itemIncluido.Quantidade.Valor, ordemServicoId);
             }
 
             // Se todos os itens estão disponíveis - pode aprovar o orçamento
@@ -58,10 +51,19 @@ public class AprovarOrcamentoUseCase
         }
         catch (DomainException ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .ComDomainErrorType(ex)
+                  .LogInformation(ex.LogTemplate, ex.LogArgs);
+
             presenter.ApresentarErro(ex.Message, ex.ErrorType);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .LogError(ex, "Erro interno do servidor.");
+
             presenter.ApresentarErro("Erro interno do servidor.", ErrorType.UnexpectedError);
         }
     }

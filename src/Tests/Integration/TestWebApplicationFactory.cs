@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using Tests.Helpers;
+using Application.Contracts.Monitoramento;
 
 namespace Tests.Integration
 {
@@ -36,7 +37,11 @@ namespace Tests.Integration
                     ["Webhook:HmacSecret"] = TestHmacUtils.TestHmacSecret,
                     ["Jwt:Key"] = JwtTestConstants.Key,
                     ["Jwt:Issuer"] = JwtTestConstants.Issuer,
-                    ["Jwt:Audience"] = JwtTestConstants.Audience
+                    ["Jwt:Audience"] = JwtTestConstants.Audience,
+                    ["Logging:LogLevel:Default"] = "None",
+                    ["Logging:LogLevel:Microsoft"] = "None",
+                    ["Logging:LogLevel:Microsoft.AspNetCore"] = "None",
+                    ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] = "None"
                 };
                 config.AddInMemoryCollection(overrides);
             });
@@ -49,6 +54,9 @@ namespace Tests.Integration
                 {
                     services.Remove(descriptor);
                 }
+
+                // Configura mock do IMetricsService para testes
+                services.AddSingleton<IMetricsService, MockMetricsService>();
 
                 // Cria conexão com banco de dados em memória
                 services.AddDbContext<AppDbContext>(options =>

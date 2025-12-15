@@ -8,37 +8,30 @@ using Domain.Identidade.Aggregates;
 using Domain.Identidade.ValueObjects;
 using Shared.Enums;
 using Shared.Exceptions;
+using Application.Extensions;
 using UsuarioAggregate = Domain.Identidade.Aggregates.Usuario;
+using Application.Contracts.Monitoramento;
 
 namespace Application.Identidade.UseCases.Usuario
 {
     public class CriarUsuarioUseCase
     {
-        public async Task ExecutarAsync(Ator ator, CriarUsuarioDto dto, IUsuarioGateway gateway, ICriarUsuarioPresenter presenter, IPasswordHasher passwordHasher)
+        public async Task ExecutarAsync(Ator ator, CriarUsuarioDto dto, IUsuarioGateway gateway, ICriarUsuarioPresenter presenter, IPasswordHasher passwordHasher, IAppLogger logger)
         {
             try
             {
                 if (!ator.PodeGerenciarUsuarios())
-                {
-                    presenter.ApresentarErro("Acesso negado. Apenas administradores podem gerenciar usuários.", ErrorType.NotAllowed);
-                    return;
-                }
+                    throw new DomainException("Acesso negado. Apenas administradores podem criar usuários.", ErrorType.NotAllowed, "Acesso negado para criar usuário para usuário {Ator_UsuarioId}", ator.UsuarioId);
 
                 var usuarioExistente = await gateway.ObterPorDocumentoAsync(dto.DocumentoIdentificador);
                 if (usuarioExistente != null)
-                {
-                    presenter.ApresentarErro("Já existe um usuário cadastrado com este documento.", ErrorType.Conflict);
-                    return;
-                }
+                    throw new DomainException("Já existe um usuário cadastrado com este documento.", ErrorType.Conflict, "Já existe usuário com documento {Documento} para usuário {Ator_UsuarioId}", dto.DocumentoIdentificador, ator.UsuarioId);
 
                 // Busca as roles existentes no banco ao invés de criar novas instâncias
                 var roles = await gateway.ObterRolesAsync(dto.Roles);
                 
                 if (roles.Count != dto.Roles.Count)
-                {
-                    presenter.ApresentarErro("Uma ou mais roles informadas são inválidas.", ErrorType.InvalidInput);
-                    return;
-                }
+                    throw new DomainException("Uma ou mais roles informadas são inválidas.", ErrorType.InvalidInput, "Roles inválidas {Roles} para usuário {Ator_UsuarioId}", string.Join(",", dto.Roles), ator.UsuarioId);
 
                 var senhaHasheada = passwordHasher.Hash(dto.SenhaNaoHasheada);
                 var senhaHash = new SenhaHash(senhaHasheada);
@@ -50,10 +43,19 @@ namespace Application.Identidade.UseCases.Usuario
             }
             catch (DomainException ex)
             {
+                logger.ComUseCase(this)
+                      .ComAtor(ator)
+                      .ComDomainErrorType(ex)
+                      .LogInformation(ex.LogTemplate, ex.LogArgs);
+
                 presenter.ApresentarErro(ex.Message, ex.ErrorType);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.ComUseCase(this)
+                      .ComAtor(ator)
+                      .LogError(ex, "Erro interno do servidor.");
+
                 presenter.ApresentarErro("Erro interno do servidor.", ErrorType.UnexpectedError);
             }
         }

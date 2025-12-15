@@ -26,6 +26,7 @@ namespace Tests.Application.Estoque
                 .Build();
             var quantidadeRequisitada = 20;
             var disponibilidadeEsperada = true;
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemExistente.Id).Retorna(itemExistente);
 
@@ -35,7 +36,8 @@ namespace Tests.Application.Estoque
                 itemExistente.Id,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.VerificarDisponibilidadePresenterMock.Object);
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoSucessoVerificacaoDisponibilidade(itemExistente, quantidadeRequisitada, disponibilidadeEsperada);
@@ -52,6 +54,7 @@ namespace Tests.Application.Estoque
                 .Build();
             var quantidadeRequisitada = 20;
             var disponibilidadeEsperada = false;
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemExistente.Id).Retorna(itemExistente);
 
@@ -61,7 +64,8 @@ namespace Tests.Application.Estoque
                 itemExistente.Id,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.VerificarDisponibilidadePresenterMock.Object);
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoSucessoVerificacaoDisponibilidade(itemExistente, quantidadeRequisitada, disponibilidadeEsperada);
@@ -75,6 +79,7 @@ namespace Tests.Application.Estoque
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemId = Guid.NewGuid();
             var quantidadeRequisitada = 10;
+            var logger = MockLogger.CriarSimples();
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).NaoRetornaNada();
 
             // Act
@@ -83,7 +88,8 @@ namespace Tests.Application.Estoque
                 itemId,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.VerificarDisponibilidadePresenterMock.Object);
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoErroVerificacaoDisponibilidade($"Item de estoque com ID {itemId} não foi encontrado", ErrorType.ResourceNotFound);
@@ -97,6 +103,7 @@ namespace Tests.Application.Estoque
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder().Build();
             var quantidadeInvalida = -5; // Quantidade inválida para provocar DomainException
+            var logger = MockLogger.CriarSimples();
 
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemExistente.Id).Retorna(itemExistente);
 
@@ -106,7 +113,8 @@ namespace Tests.Application.Estoque
                 itemExistente.Id,
                 quantidadeInvalida,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.VerificarDisponibilidadePresenterMock.Object);
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoErroVerificacaoDisponibilidade("Quantidade requisitada deve ser maior que 0", ErrorType.InvalidInput);
@@ -120,6 +128,7 @@ namespace Tests.Application.Estoque
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemId = Guid.NewGuid();
             var quantidadeRequisitada = 10;
+            var logger = MockLogger.CriarSimples();
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
@@ -128,7 +137,8 @@ namespace Tests.Application.Estoque
                 itemId,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.VerificarDisponibilidadePresenterMock.Object);
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoErroVerificacaoDisponibilidade("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -142,6 +152,7 @@ namespace Tests.Application.Estoque
             var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
             var itemId = Guid.NewGuid();
             var quantidadeRequisitada = 10;
+            var logger = MockLogger.CriarSimples();
 
             // Act
             await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
@@ -149,10 +160,58 @@ namespace Tests.Application.Estoque
                 itemId,
                 quantidadeRequisitada,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.VerificarDisponibilidadePresenterMock.Object);
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                logger);
 
             // Assert
-            _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoErroVerificacaoDisponibilidade("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
+            _fixture.VerificarDisponibilidadePresenterMock.DeveTerApresentadoErroVerificacaoDisponibilidade("Acesso negado. Apenas administradores podem verificar estoque.", ErrorType.NotAllowed);
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "VerificarDisponibilidade")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var itemId = Guid.NewGuid();
+            var quantidadeRequisitada = 10;
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
+                itemId,
+                quantidadeRequisitada,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "VerificarDisponibilidade")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var itemId = Guid.NewGuid();
+            var quantidadeRequisitada = 10;
+            var mockLogger = MockLogger.Criar();
+            _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.VerificarDisponibilidadeUseCase.ExecutarAsync(
+                ator,
+                itemId,
+                quantidadeRequisitada,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.VerificarDisponibilidadePresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

@@ -25,10 +25,11 @@ namespace Tests.Application.Cadastros.Servico
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var servicos = new List<ServicoAggregate> { new ServicoBuilder().Build(), new ServicoBuilder().Build() };
+            var logger = MockLogger.CriarSimples();
             _fixture.ServicoGatewayMock.AoObterTodos().Retorna(servicos);
 
             // Act
-            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object);
+            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarServicosPresenterMock.DeveTerApresentadoSucesso<IBuscarServicosPresenter, IEnumerable<ServicoAggregate>>(servicos);
@@ -41,12 +42,13 @@ namespace Tests.Application.Cadastros.Servico
         {
             // Arrange
             var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var logger = MockLogger.CriarSimples();
 
             // Act
-            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object);
+            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object, logger);
 
             // Assert
-            _fixture.BuscarServicosPresenterMock.DeveTerApresentadoErro<IBuscarServicosPresenter, IEnumerable<ServicoAggregate>>("Acesso negado. Apenas administradores podem gerenciar serviços.", ErrorType.NotAllowed);
+            _fixture.BuscarServicosPresenterMock.DeveTerApresentadoErro<IBuscarServicosPresenter, IEnumerable<ServicoAggregate>>("Acesso negado. Apenas administradores podem listar serviços.", ErrorType.NotAllowed);
             _fixture.BuscarServicosPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarServicosPresenter, IEnumerable<ServicoAggregate>>();
         }
 
@@ -57,10 +59,11 @@ namespace Tests.Application.Cadastros.Servico
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var listaVazia = new List<ServicoAggregate>();
+            var logger = MockLogger.CriarSimples();
             _fixture.ServicoGatewayMock.AoObterTodos().Retorna(listaVazia);
 
             // Act
-            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object);
+            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarServicosPresenterMock.DeveTerApresentadoSucesso<IBuscarServicosPresenter, IEnumerable<ServicoAggregate>>(listaVazia);
@@ -73,14 +76,46 @@ namespace Tests.Application.Cadastros.Servico
         {
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
+            var logger = MockLogger.CriarSimples();
             _fixture.ServicoGatewayMock.AoObterTodos().LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
-            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object);
+            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object, logger);
 
             // Assert
             _fixture.BuscarServicosPresenterMock.DeveTerApresentadoErro<IBuscarServicosPresenter, IEnumerable<ServicoAggregate>>("Erro interno do servidor.", ErrorType.UnexpectedError);
             _fixture.BuscarServicosPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarServicosPresenter, IEnumerable<ServicoAggregate>>();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "BuscarServicos")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "BuscarServicos")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ServicoGatewayMock.AoObterTodos().LancaExcecao(new Exception("Falha inesperada"));
+
+            // Act
+            await _fixture.BuscarServicosUseCase.ExecutarAsync(ator, _fixture.ServicoGatewayMock.Object, _fixture.BuscarServicosPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

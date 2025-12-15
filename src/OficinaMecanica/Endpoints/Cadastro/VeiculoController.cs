@@ -18,7 +18,7 @@ namespace API.Endpoints.Cadastro
     {
         private readonly AppDbContext _context;
 
-        public VeiculoController(AppDbContext context)
+        public VeiculoController(AppDbContext context, ILoggerFactory loggerFactory) : base(loggerFactory)
         {
             _context = context;
         }
@@ -38,7 +38,7 @@ namespace API.Endpoints.Cadastro
         {
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarVeiculosPresenter();
-            var handler = new VeiculoHandler();
+            var handler = new VeiculoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarVeiculosAsync(ator, veiculoGateway, presenter);
@@ -63,7 +63,7 @@ namespace API.Endpoints.Cadastro
         {
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarVeiculoPorIdPresenter();
-            var handler = new VeiculoHandler();
+            var handler = new VeiculoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarVeiculoPorIdAsync(ator, id, veiculoGateway, presenter);
@@ -88,7 +88,7 @@ namespace API.Endpoints.Cadastro
         {
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarVeiculoPorPlacaPresenter();
-            var handler = new VeiculoHandler();
+            var handler = new VeiculoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarVeiculoPorPlacaAsync(ator, placa, veiculoGateway, presenter);
@@ -114,7 +114,7 @@ namespace API.Endpoints.Cadastro
             var veiculoGateway = new VeiculoRepository(_context);
             var clienteGateway = new ClienteRepository(_context);
             var presenter = new BuscarVeiculosPorClientePresenter();
-            var handler = new VeiculoHandler();
+            var handler = new VeiculoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarVeiculosPorClienteAsync(ator, clienteId, veiculoGateway, clienteGateway, presenter);
@@ -142,7 +142,7 @@ namespace API.Endpoints.Cadastro
             var veiculoGateway = new VeiculoRepository(_context);
             var clienteGateway = new ClienteRepository(_context);
             var presenter = new CriarVeiculoPresenter();
-            var handler = new VeiculoHandler();
+            var handler = new VeiculoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.CriarVeiculoAsync(ator, dto.ClienteId, dto.Placa, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, clienteGateway, presenter);
@@ -170,9 +170,9 @@ namespace API.Endpoints.Cadastro
         {
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new AtualizarVeiculoPresenter();
-            var handler = new VeiculoHandler();
+            var handler = new VeiculoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
-            
+
             await handler.AtualizarVeiculoAsync(ator, id, dto.Modelo, dto.Marca, dto.Cor, dto.Ano, dto.TipoVeiculo, veiculoGateway, presenter);
             return presenter.ObterResultado();
         }

@@ -3,6 +3,7 @@ using Shared.Enums;
 using Tests.Application.OrdemServico.Helpers;
 using Tests.Application.SharedHelpers.AggregateBuilders;
 using Tests.Application.SharedHelpers.Gateways;
+using Tests.Application.SharedHelpers;
 
 namespace Tests.Application.OrdemServico
 {
@@ -31,7 +32,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples(),
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoSucesso();
@@ -53,7 +55,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples(),
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
@@ -75,7 +78,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples(),
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErroComTipo(ErrorType.DomainRuleBroken);
@@ -98,7 +102,8 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServico.Id,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples(),
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -118,11 +123,111 @@ namespace Tests.Application.OrdemServico
                 ator,
                 ordemServicoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples(),
+                _fixture.MetricsServiceMock.Object);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores podem entregar ordens de serviço.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve logar Information quando ator não for administrador")]
+        [Trait("UseCase", "EntregarOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoAtorNaoForAdministrador()
+        {
+            // Arrange
+            var ator = Ator.Cliente(Guid.NewGuid(), Guid.NewGuid());
+            var ordemServicoId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.EntregarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object,
+                _fixture.MetricsServiceMock.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar Error quando ocorrer exceção genérica")]
+        [Trait("UseCase", "EntregarOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerExcecaoGenerica()
+        {
+            // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
+            var ordemServico = new OrdemServicoBuilder().ProntoParaEntrega().Build();
+            var mockLogger = MockLogger.Criar();
+            var excecaoEsperada = new InvalidOperationException("Erro de banco de dados");
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(excecaoEsperada);
+
+            // Act
+            await _fixture.EntregarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object,
+                _fixture.MetricsServiceMock.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
+        }
+
+        [Fact(DisplayName = "Deve registrar métrica de mudança de status quando entregar ordem de serviço com sucesso")]
+        [Trait("UseCase", "EntregarOrdemServico")]
+        public async Task ExecutarAsync_DeveRegistrarMetricaMudancaStatus_QuandoEntregarOrdemServicoComSucesso()
+        {
+            // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
+            var ordemServico = new OrdemServicoBuilder().ProntoParaEntrega().Build();
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.OrdemServicoGatewayMock.AoAtualizar().Retorna(ordemServico);
+
+            // Act
+            await _fixture.EntregarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object, MockLogger.CriarSimples(),
+                _fixture.MetricsServiceMock.Object);
+
+            // Assert
+            _fixture.MetricsServiceMock.DeveTerRegistradoMudancaOrdemServicoStatus();
+        }
+
+        [Fact(DisplayName = "Deve logar erro quando falha ao registrar métrica")]
+        [Trait("UseCase", "EntregarOrdemServico")]
+        public async Task ExecutarAsync_DeveLogarErro_QuandoFalhaAoRegistrarMetrica()
+        {
+            // Arrange
+            var ator = Ator.Administrador(Guid.NewGuid());
+            var ordemServico = new OrdemServicoBuilder().ProntoParaEntrega().Build();
+            var mockLogger = MockLogger.Criar();
+            var excecaoMetrica = new InvalidOperationException("Erro ao enviar métrica");
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.OrdemServicoGatewayMock.AoAtualizar().Retorna(ordemServico);
+            _fixture.MetricsServiceMock.AoRegistrarMudancaOrdemServicoStatus().LancaExcecao(excecaoMetrica);
+
+            // Act
+            await _fixture.EntregarOrdemServicoUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object,
+                _fixture.MetricsServiceMock.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoError();
+            _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoSucesso(); // Operação deve continuar mesmo com erro de métrica
         }
     }
 }

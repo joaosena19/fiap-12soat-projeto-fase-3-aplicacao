@@ -6,6 +6,7 @@ using Infrastructure.Handlers.Cadastros;
 using Infrastructure.Repositories.Cadastros;
 using Infrastructure.Repositories.Identidade;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace API.Endpoints.Cadastro
 {
@@ -19,7 +20,7 @@ namespace API.Endpoints.Cadastro
     {
         private readonly AppDbContext _context;
 
-        public ClienteController(AppDbContext context)
+        public ClienteController(AppDbContext context, ILoggerFactory loggerFactory) : base(loggerFactory)
         {
             _context = context;
         }
@@ -39,7 +40,7 @@ namespace API.Endpoints.Cadastro
         {
             var gateway = new ClienteRepository(_context);
             var presenter = new BuscarClientesPresenter();
-            var handler = new ClienteHandler();
+            var handler = new ClienteHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarClientesAsync(ator, gateway, presenter);
@@ -64,7 +65,7 @@ namespace API.Endpoints.Cadastro
         {
             var gateway = new ClienteRepository(_context);
             var presenter = new BuscarClientePorIdPresenter();
-            var handler = new ClienteHandler();
+            var handler = new ClienteHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarClientePorIdAsync(ator, id, gateway, presenter);
@@ -92,7 +93,7 @@ namespace API.Endpoints.Cadastro
 
             var gateway = new ClienteRepository(_context);
             var presenter = new BuscarClientePorDocumentoPresenter();
-            var handler = new ClienteHandler();
+            var handler = new ClienteHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarClientePorDocumentoAsync(ator, documentoUnencoded, gateway, presenter);
@@ -120,7 +121,7 @@ namespace API.Endpoints.Cadastro
             var clienteGateway = new ClienteRepository(_context);
             var usuarioGateway = new UsuarioRepository(_context);
             var presenter = new CriarClientePresenter();
-            var handler = new ClienteHandler();
+            var handler = new ClienteHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.CriarClienteAsync(ator, dto.Nome, dto.DocumentoIdentificador, clienteGateway, usuarioGateway, presenter);
@@ -148,7 +149,7 @@ namespace API.Endpoints.Cadastro
         {
             var gateway = new ClienteRepository(_context);
             var presenter = new AtualizarClientePresenter();
-            var handler = new ClienteHandler();
+            var handler = new ClienteHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.AtualizarClienteAsync(ator, id, dto.Nome, gateway, presenter);

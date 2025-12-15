@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Shared.Options;
 using Infrastructure.Authentication.PasswordHashing;
+using Microsoft.Extensions.Logging;
 
 namespace API.Endpoints.Identidade
 {
@@ -24,7 +25,7 @@ namespace API.Endpoints.Identidade
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
 
-        public UsuarioController(AppDbContext context, IConfiguration configuration)
+        public UsuarioController(AppDbContext context, IConfiguration configuration, ILoggerFactory loggerFactory) : base(loggerFactory)
         {
             _context = context;
             _configuration = configuration;
@@ -49,7 +50,7 @@ namespace API.Endpoints.Identidade
 
             var gateway = new UsuarioRepository(_context);
             var presenter = new BuscarUsuarioPorDocumentoPresenter();
-            var handler = new UsuarioHandler();
+            var handler = new UsuarioHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarUsuarioPorDocumentoAsync(ator, documentoUnencoded, gateway, presenter);
@@ -80,7 +81,7 @@ namespace API.Endpoints.Identidade
 
             var gateway = new UsuarioRepository(_context);
             var presenter = new CriarUsuarioPresenter();
-            var handler = new UsuarioHandler();
+            var handler = new UsuarioHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.CriarUsuarioAsync(ator, dto, gateway, presenter, passwordHasher);

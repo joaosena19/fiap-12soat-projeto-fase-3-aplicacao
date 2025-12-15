@@ -24,6 +24,7 @@ namespace Tests.Application.Estoque
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemExistente = new ItemEstoqueBuilder().Build();
+            var logger = MockLogger.CriarSimples();
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemExistente.Id).Retorna(itemExistente);
 
             // Act
@@ -31,7 +32,8 @@ namespace Tests.Application.Estoque
                 ator,
                 itemExistente.Id,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.BuscarItemEstoquePorIdPresenterMock.Object);
+                _fixture.BuscarItemEstoquePorIdPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.BuscarItemEstoquePorIdPresenterMock.DeveTerApresentadoSucesso<IBuscarItemEstoquePorIdPresenter, ItemEstoqueAggregate>(itemExistente);
@@ -45,6 +47,7 @@ namespace Tests.Application.Estoque
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemId = Guid.NewGuid();
+            var logger = MockLogger.CriarSimples();
             _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).NaoRetornaNada();
 
             // Act
@@ -52,7 +55,8 @@ namespace Tests.Application.Estoque
                 ator,
                 itemId,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.BuscarItemEstoquePorIdPresenterMock.Object);
+                _fixture.BuscarItemEstoquePorIdPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.BuscarItemEstoquePorIdPresenterMock.DeveTerApresentadoErro<IBuscarItemEstoquePorIdPresenter, ItemEstoqueAggregate>($"Item de estoque com ID {itemId} não foi encontrado", ErrorType.ResourceNotFound);
@@ -66,14 +70,16 @@ namespace Tests.Application.Estoque
             // Arrange
             var ator = new AtorBuilder().ComoAdministrador().Build();
             var itemId = Guid.NewGuid();
-            _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+            var logger = MockLogger.CriarSimples();
+            _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).LancaExcecao(new Exception("Falha inesperada"));
 
             // Act
             await _fixture.BuscarItemEstoquePorIdUseCase.ExecutarAsync(
                 ator,
                 itemId,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.BuscarItemEstoquePorIdPresenterMock.Object);
+                _fixture.BuscarItemEstoquePorIdPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.BuscarItemEstoquePorIdPresenterMock.DeveTerApresentadoErro<IBuscarItemEstoquePorIdPresenter, ItemEstoqueAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -87,17 +93,63 @@ namespace Tests.Application.Estoque
             // Arrange
             var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
             var itemId = Guid.NewGuid();
+            var logger = MockLogger.CriarSimples();
 
             // Act
             await _fixture.BuscarItemEstoquePorIdUseCase.ExecutarAsync(
                 ator,
                 itemId,
                 _fixture.ItemEstoqueGatewayMock.Object,
-                _fixture.BuscarItemEstoquePorIdPresenterMock.Object);
+                _fixture.BuscarItemEstoquePorIdPresenterMock.Object,
+                logger);
 
             // Assert
-            _fixture.BuscarItemEstoquePorIdPresenterMock.DeveTerApresentadoErro<IBuscarItemEstoquePorIdPresenter, ItemEstoqueAggregate>("Acesso negado. Apenas administradores podem gerenciar estoque.", ErrorType.NotAllowed);
+            _fixture.BuscarItemEstoquePorIdPresenterMock.DeveTerApresentadoErro<IBuscarItemEstoquePorIdPresenter, ItemEstoqueAggregate>("Acesso negado. Apenas administradores podem buscar estoque.", ErrorType.NotAllowed);
             _fixture.BuscarItemEstoquePorIdPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarItemEstoquePorIdPresenter, ItemEstoqueAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "BuscarItemEstoquePorId")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var itemId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).NaoRetornaNada();
+
+            // Act
+            await _fixture.BuscarItemEstoquePorIdUseCase.ExecutarAsync(
+                ator,
+                itemId,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.BuscarItemEstoquePorIdPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "BuscarItemEstoquePorId")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var itemId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+            _fixture.ItemEstoqueGatewayMock.AoObterPorId(itemId).LancaExcecao(new Exception("Falha inesperada"));
+
+            // Act
+            await _fixture.BuscarItemEstoquePorIdUseCase.ExecutarAsync(
+                ator,
+                itemId,
+                _fixture.ItemEstoqueGatewayMock.Object,
+                _fixture.BuscarItemEstoquePorIdPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

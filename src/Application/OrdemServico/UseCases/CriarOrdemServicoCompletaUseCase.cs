@@ -7,7 +7,9 @@ using Domain.Cadastros.Aggregates;
 using Domain.OrdemServico.Enums;
 using Shared.Enums;
 using Shared.Exceptions;
+using Application.Extensions;
 using OrdemServicoAggregate = Domain.OrdemServico.Aggregates.OrdemServico.OrdemServico;
+using Application.Contracts.Monitoramento;
 
 namespace Application.OrdemServico.UseCases;
 
@@ -16,15 +18,12 @@ namespace Application.OrdemServico.UseCases;
 /// </summary>
 public class CriarOrdemServicoCompletaUseCase
 {
-    public async Task ExecutarAsync(Ator ator, CriarOrdemServicoCompletaDto dto, IOrdemServicoGateway ordemServicoGateway, IClienteGateway clienteGateway, IVeiculoGateway veiculoGateway, IServicoGateway servicoGateway, IItemEstoqueGateway itemEstoqueGateway, ICriarOrdemServicoCompletaPresenter presenter)
+    public async Task ExecutarAsync(Ator ator, CriarOrdemServicoCompletaDto dto, IOrdemServicoGateway ordemServicoGateway, IClienteGateway clienteGateway, IVeiculoGateway veiculoGateway, IServicoGateway servicoGateway, IItemEstoqueGateway itemEstoqueGateway, ICriarOrdemServicoCompletaPresenter presenter, IAppLogger logger, IMetricsService metricsService)
     {
         try
         {
             if (!ator.PodeGerenciarOrdemServico())
-            {
-                presenter.ApresentarErro("Acesso negado. Apenas administradores podem criar ordens de serviço completas.", ErrorType.NotAllowed);
-                return;
-            }
+                throw new DomainException("Acesso negado. Apenas administradores podem criar ordens de serviço completas.", ErrorType.NotAllowed, "Acesso negado para criar ordem de serviço completa para usuário {Ator_UsuarioId}", ator.UsuarioId);
 
             var cliente = await BuscarOuCriarCliente(dto.Cliente, clienteGateway);
             var veiculo = await BuscarOuCriarVeiculo(dto.Veiculo, cliente.Id, veiculoGateway);
@@ -34,14 +33,26 @@ public class CriarOrdemServicoCompletaUseCase
             await AdicionarItens(dto.Itens, novaOrdemServico, itemEstoqueGateway);
 
             var result = await ordemServicoGateway.SalvarAsync(novaOrdemServico);
+
+            RegistrarMetricaOrdemServicoCriada(result.Id, cliente.Id, ator, metricsService, logger);
+
             presenter.ApresentarSucesso(result);
         }
         catch (DomainException ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .ComDomainErrorType(ex)
+                  .LogInformation(ex.LogTemplate, ex.LogArgs);
+
             presenter.ApresentarErro(ex.Message, ex.ErrorType);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .LogError(ex, "Erro interno do servidor.");
+
             presenter.ApresentarErro("Erro interno do servidor.", ErrorType.UnexpectedError);
         }
     }
@@ -122,6 +133,23 @@ public class CriarOrdemServicoCompletaUseCase
                 itemEstoque.Preco.Valor,
                 itemDto.Quantidade,
                 tipoItemIncluido);
+        }
+    }
+
+    /// <summary>
+    /// Registra métricas para uma ordem de serviço criada. Não lança exception em caso de falha.
+    /// </summary>
+    private void RegistrarMetricaOrdemServicoCriada(Guid ordemServicoId, Guid clienteId, Ator ator, IMetricsService metricsService, IAppLogger logger)
+    {
+        try
+        {
+            metricsService.RegistrarOrdemServicoCriada(ordemServicoId, clienteId, ator.UsuarioId);
+        }
+        catch (Exception ex)
+        {
+            logger.ComUseCase(this)
+                  .ComAtor(ator)
+                  .LogError(ex, "Erro ao registrar métrica de ordem de serviço criada. OrdemServicoId: {OrdemServicoId}", ordemServicoId);
         }
     }
 

@@ -28,12 +28,14 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoAtualizar().Retorna(ordemServico);
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.RemoverItemUseCase.ExecutarAsync(
                 ator,
                 ordemServico.Id,
                 itemIncluidoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoSucesso();
@@ -52,12 +54,14 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).NaoRetornaNada();
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.RemoverItemUseCase.ExecutarAsync(
                 ator,
                 ordemServicoId,
                 itemIncluidoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
@@ -76,12 +80,14 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.RemoverItemUseCase.ExecutarAsync(
                 ator,
                 ordemServico.Id,
                 itemIncluidoIdInexistente,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErroComTipo(ErrorType.ResourceNotFound);
@@ -101,12 +107,14 @@ namespace Tests.Application.OrdemServico
             _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.RemoverItemUseCase.ExecutarAsync(
                 ator,
                 ordemServico.Id,
                 itemIncluidoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -123,16 +131,67 @@ namespace Tests.Application.OrdemServico
             var itemIncluidoId = Guid.NewGuid();
 
             // Act
+            var logger = MockLogger.CriarSimples();
             await _fixture.RemoverItemUseCase.ExecutarAsync(
                 ator,
                 ordemServicoId,
                 itemIncluidoId,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.OperacaoOrdemServicoPresenterMock.Object);
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                logger);
 
             // Assert
             _fixture.OperacaoOrdemServicoPresenterMock.DeveTerApresentadoErro("Acesso negado. Apenas administradores podem remover itens.", ErrorType.NotAllowed);
             _fixture.OperacaoOrdemServicoPresenterMock.NaoDeveTerApresentadoSucesso();
+        }
+
+        [Fact(DisplayName = "Deve logar information quando ocorrer DomainException")]
+        [Trait("UseCase", "RemoverItem")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var ordemServicoId = Guid.NewGuid();
+            var itemIncluidoId = Guid.NewGuid();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.RemoverItemUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                itemIncluidoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error quando ocorrer Exception")]
+        [Trait("UseCase", "RemoverItem")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var ordemServico = new OrdemServicoBuilder().ComItens().Build();
+            var itemIncluidoId = ordemServico.ItensIncluidos.First().Id;
+            var mockLogger = MockLogger.Criar();
+
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServico.Id).Retorna(ordemServico);
+            _fixture.OrdemServicoGatewayMock.AoAtualizar().LancaExcecao(new InvalidOperationException("Erro inesperado"));
+
+            // Act
+            await _fixture.RemoverItemUseCase.ExecutarAsync(
+                ator,
+                ordemServico.Id,
+                itemIncluidoId,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.OperacaoOrdemServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

@@ -6,6 +6,7 @@ using Infrastructure.Database;
 using Infrastructure.Handlers.Cadastros;
 using Infrastructure.Repositories.Cadastros;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace API.Endpoints.Cadastro
 {
@@ -19,7 +20,7 @@ namespace API.Endpoints.Cadastro
     {
         private readonly AppDbContext _context;
 
-        public ServicoController(AppDbContext context)
+        public ServicoController(AppDbContext context, ILoggerFactory loggerFactory) : base(loggerFactory)
         {
             _context = context;
         }
@@ -37,7 +38,7 @@ namespace API.Endpoints.Cadastro
         {
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new BuscarServicosPresenter();
-            var handler = new ServicoHandler();
+            var handler = new ServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarServicosAsync(ator, servicoGateway, presenter);
@@ -60,7 +61,7 @@ namespace API.Endpoints.Cadastro
         {
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new BuscarServicoPorIdPresenter();
-            var handler = new ServicoHandler();
+            var handler = new ServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.BuscarServicoPorIdAsync(ator, id, servicoGateway, presenter);
@@ -85,7 +86,7 @@ namespace API.Endpoints.Cadastro
         {
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new CriarServicoPresenter();
-            var handler = new ServicoHandler();
+            var handler = new ServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.CriarServicoAsync(ator, dto.Nome, dto.Preco, servicoGateway, presenter);
@@ -111,7 +112,7 @@ namespace API.Endpoints.Cadastro
         {
             var servicoGateway = new ServicoRepository(_context);
             var presenter = new AtualizarServicoPresenter();
-            var handler = new ServicoHandler();
+            var handler = new ServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
             
             await handler.AtualizarServicoAsync(ator, id, dto.Nome, dto.Preco, servicoGateway, presenter);

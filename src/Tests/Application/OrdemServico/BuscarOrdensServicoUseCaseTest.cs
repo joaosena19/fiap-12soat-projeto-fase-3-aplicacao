@@ -35,7 +35,8 @@ namespace Tests.Application.OrdemServico
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
                 ator,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.BuscarOrdensServicoPresenterMock.Object);
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarOrdensServicoPresenterMock.DeveTerApresentadoSucessoComQualquerObjeto<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>();
@@ -53,7 +54,8 @@ namespace Tests.Application.OrdemServico
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
                 ator,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.BuscarOrdensServicoPresenterMock.Object);
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarOrdensServicoPresenterMock.DeveTerApresentadoErro<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>("Acesso negado. Apenas administradores podem listar ordens de serviço.", ErrorType.NotAllowed);
@@ -72,7 +74,8 @@ namespace Tests.Application.OrdemServico
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
                 ator,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.BuscarOrdensServicoPresenterMock.Object);
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarOrdensServicoPresenterMock.DeveTerApresentadoSucesso<IBuscarOrdensServicoPresenter, OrdemServicoAggregate>(Enumerable.Empty<OrdemServicoAggregate>());
@@ -91,7 +94,8 @@ namespace Tests.Application.OrdemServico
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
                 ator,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.BuscarOrdensServicoPresenterMock.Object);
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarOrdensServicoPresenterMock.DeveTerApresentadoErro<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -124,7 +128,8 @@ namespace Tests.Application.OrdemServico
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
                 ator,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.BuscarOrdensServicoPresenterMock.Object);
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             // Verificar que ApresentarSucesso foi chamado com uma coleção onde todos os elementos têm status válidos
@@ -177,7 +182,8 @@ namespace Tests.Application.OrdemServico
             await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
                 ator,
                 _fixture.OrdemServicoGatewayMock.Object,
-                _fixture.BuscarOrdensServicoPresenterMock.Object);
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                MockLogger.CriarSimples());
 
             // Assert
             // Verificar que ApresentarSucesso foi chamado com uma coleção ordenada corretamente por prioridade
@@ -188,6 +194,47 @@ namespace Tests.Application.OrdemServico
                 "Era esperado que ApresentarSucesso fosse chamado com uma coleção ordenada por prioridade de status");
 
             _fixture.BuscarOrdensServicoPresenterMock.NaoDeveTerApresentadoErro<IBuscarOrdensServicoPresenter, IEnumerable<OrdemServicoAggregate>>();
+        }
+
+        [Fact(DisplayName = "Deve logar Information quando ator não for administrador")]
+        [Trait("UseCase", "BuscarOrdensServico")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoAtorNaoForAdministrador()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar Error quando ocorrer exceção genérica")]
+        [Trait("UseCase", "BuscarOrdensServico")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoOcorrerExcecaoGenerica()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var mockLogger = MockLogger.Criar();
+            var excecaoEsperada = new InvalidOperationException("Erro de banco de dados");
+
+            _fixture.OrdemServicoGatewayMock.AoObterTodos().LancaExcecao(excecaoEsperada);
+
+            // Act
+            await _fixture.BuscarOrdensServicoUseCase.ExecutarAsync(
+                ator,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.BuscarOrdensServicoPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
 
         private static bool VerificarOrdenacaoPorPrioridade(IEnumerable<OrdemServicoAggregate> ordens, Dictionary<StatusOrdemServicoEnum, int> prioridadeEsperada)

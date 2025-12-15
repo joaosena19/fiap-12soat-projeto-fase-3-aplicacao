@@ -3,9 +3,12 @@ using API.Dtos;
 using API.Presenters.OrdemServico;
 using Application.Identidade.Services;
 using Application.OrdemServico.Dtos;
+using Infrastructure.AntiCorruptionLayer.OrdemServico;
 using Infrastructure.Database;
 using Infrastructure.Handlers.OrdemServico;
+using Infrastructure.Monitoramento;
 using Infrastructure.Repositories.Cadastros;
+using Infrastructure.Repositories.Estoque;
 using Infrastructure.Repositories.OrdemServico;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +25,7 @@ namespace API.Endpoints.OrdemServico
     {
         private readonly AppDbContext _context;
 
-        public OrdemServicoController(AppDbContext context)
+        public OrdemServicoController(AppDbContext context, ILoggerFactory loggerFactory) : base(loggerFactory)
         {
             _context = context;
         }
@@ -42,7 +45,7 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new BuscarOrdensServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             await handler.BuscarOrdensServicoAsync(ator, gateway, presenter);
@@ -68,7 +71,7 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarOrdemServicoPorIdPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             await handler.BuscarOrdemServicoPorIdAsync(ator, id, gateway, veiculoGateway, presenter);
@@ -94,7 +97,7 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new BuscarOrdemServicoPorCodigoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             await handler.BuscarOrdemServicoPorCodigoAsync(ator, codigo, gateway, veiculoGateway, presenter);
@@ -121,11 +124,13 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new CriarOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
-            var veiculoExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.VeiculoExternalService(new Infrastructure.Repositories.Cadastros.VeiculoRepository(_context));
+            var handler = new OrdemServicoHandler(_loggerFactory);
+            var veiculoExternalService = new VeiculoExternalService(new VeiculoRepository(_context));
+            var clienteExternalService = new ClienteExternalService(new VeiculoRepository(_context), new ClienteRepository(_context));
+            var metricsService = new NewRelicMetricsService();
             var ator = BuscarAtorAtual();
 
-            await handler.CriarOrdemServicoAsync(ator, dto.VeiculoId, gateway, veiculoExternalService, presenter);
+            await handler.CriarOrdemServicoAsync(ator, dto.VeiculoId, gateway, veiculoExternalService, clienteExternalService, presenter, metricsService);
             return presenter.ObterResultado();
         }
 
@@ -151,12 +156,13 @@ namespace API.Endpoints.OrdemServico
             var clienteGateway = new ClienteRepository(_context);
             var veiculoGateway = new VeiculoRepository(_context);
             var servicoGateway = new ServicoRepository(_context);
-            var itemEstoqueGateway = new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context);
+            var itemEstoqueGateway = new ItemEstoqueRepository(_context);
             var presenter = new CriarOrdemServicoCompletaPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
+            var metricsService = new NewRelicMetricsService();
             var ator = BuscarAtorAtual();
 
-            await handler.CriarOrdemServicoCompletaAsync(ator, dto, ordemServicoGateway, clienteGateway, veiculoGateway, servicoGateway, itemEstoqueGateway, presenter);
+            await handler.CriarOrdemServicoCompletaAsync(ator, dto, ordemServicoGateway, clienteGateway, veiculoGateway, servicoGateway, itemEstoqueGateway, presenter, metricsService);
             return presenter.ObterResultado();
         }
 
@@ -182,7 +188,7 @@ namespace API.Endpoints.OrdemServico
             var ator = BuscarAtorAtual();
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new AdicionarServicosPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
 
             var servicoExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.ServicoExternalService(new Infrastructure.Repositories.Cadastros.ServicoRepository(_context));
             await handler.AdicionarServicosAsync(ator, id, dto.ServicosOriginaisIds, gateway, servicoExternalService, presenter);
@@ -211,7 +217,7 @@ namespace API.Endpoints.OrdemServico
             var ator = BuscarAtorAtual();
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new AdicionarItemPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
             await handler.AdicionarItemAsync(ator, id, dto.ItemEstoqueOriginalId, dto.Quantidade, gateway, estoqueExternalService, presenter);
@@ -239,9 +245,9 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
-            
+
             await handler.RemoverServicoAsync(ator, id, servicoIncluidoId, gateway, presenter);
             return presenter.ObterResultado();
         }
@@ -267,9 +273,9 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
-            
+
             await handler.RemoverItemAsync(ator, id, itemIncluidoId, gateway, presenter);
             return presenter.ObterResultado();
         }
@@ -293,7 +299,7 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             await handler.CancelarAsync(ator, id, gateway, presenter);
@@ -322,10 +328,11 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
+            var metricsService = new NewRelicMetricsService();
             var ator = BuscarAtorAtual();
 
-            await handler.IniciarDiagnosticoAsync(ator, id, gateway, presenter);
+            await handler.IniciarDiagnosticoAsync(ator, id, gateway, presenter, metricsService);
             return presenter.ObterResultado();
         }
 
@@ -353,7 +360,7 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new GerarOrcamentoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             await handler.GerarOrcamentoAsync(ator, id, gateway, presenter);
@@ -381,7 +388,7 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
@@ -410,7 +417,7 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             await handler.DesaprovarOrcamentoAsync(ator, id, gateway, veiculoGateway, presenter);
@@ -439,10 +446,11 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
+            var metricsService = new NewRelicMetricsService();
             var ator = BuscarAtorAtual();
 
-            await handler.FinalizarExecucaoAsync(ator, id, gateway, presenter);
+            await handler.FinalizarExecucaoAsync(ator, id, gateway, presenter, metricsService);
             return presenter.ObterResultado();
         }
 
@@ -468,10 +476,11 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
+            var metricsService = new NewRelicMetricsService();
             var ator = BuscarAtorAtual();
 
-            await handler.EntregarAsync(ator, id, gateway, presenter);
+            await handler.EntregarAsync(ator, id, gateway, presenter, metricsService);
             return presenter.ObterResultado();
         }
 
@@ -495,7 +504,7 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new ObterTempoMedioPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = BuscarAtorAtual();
 
             await handler.ObterTempoMedioAsync(ator, quantidadeDias, gateway, presenter);
@@ -515,7 +524,7 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new BuscaPublicaOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
 
             var clienteExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.ClienteExternalService(new Infrastructure.Repositories.Cadastros.VeiculoRepository(_context), new Infrastructure.Repositories.Cadastros.ClienteRepository(_context));
             await handler.BuscaPublicaAsync(dto.CodigoOrdemServico, dto.DocumentoIdentificadorCliente, gateway, clienteExternalService, presenter);
@@ -547,7 +556,7 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = Ator.Sistema();
 
             var estoqueExternalService = new Infrastructure.AntiCorruptionLayer.OrdemServico.EstoqueExternalService(new Infrastructure.Repositories.Estoque.ItemEstoqueRepository(_context));
@@ -580,7 +589,7 @@ namespace API.Endpoints.OrdemServico
             var gateway = new OrdemServicoRepository(_context);
             var veiculoGateway = new VeiculoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = Ator.Sistema();
 
             await handler.DesaprovarOrcamentoAsync(ator, dto.Id, gateway, veiculoGateway, presenter);
@@ -611,7 +620,7 @@ namespace API.Endpoints.OrdemServico
         {
             var gateway = new OrdemServicoRepository(_context);
             var presenter = new OperacaoOrdemServicoPresenter();
-            var handler = new OrdemServicoHandler();
+            var handler = new OrdemServicoHandler(_loggerFactory);
             var ator = Ator.Sistema();
 
             await handler.AlterarStatusAsync(ator, dto.Id, dto.Status, gateway, presenter);

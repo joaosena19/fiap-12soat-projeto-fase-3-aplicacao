@@ -31,7 +31,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorPlaca(placa).Retorna(veiculoExistente);
 
             // Act
-            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object);
+            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculoPorPlacaPresenterMock.DeveTerApresentadoSucesso<IBuscarVeiculoPorPlacaPresenter, VeiculoAggregate>(veiculoExistente);
@@ -49,7 +49,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorPlaca(placa).NaoRetornaNada();
 
             // Act
-            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object);
+            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculoPorPlacaPresenterMock.DeveTerApresentadoErro<IBuscarVeiculoPorPlacaPresenter, VeiculoAggregate>("Veículo não encontrado.", ErrorType.ResourceNotFound);
@@ -67,7 +67,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorPlaca(placa).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
 
             // Act
-            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object);
+            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculoPorPlacaPresenterMock.DeveTerApresentadoErro<IBuscarVeiculoPorPlacaPresenter, VeiculoAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -86,7 +86,7 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorPlaca(placa).Retorna(veiculo);
 
             // Act
-            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object);
+            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculoPorPlacaPresenterMock.DeveTerApresentadoSucesso<IBuscarVeiculoPorPlacaPresenter, VeiculoAggregate>(veiculo);
@@ -106,11 +106,48 @@ namespace Tests.Application.Cadastros.Veiculo
             _fixture.VeiculoGatewayMock.AoObterPorPlaca(placa).Retorna(veiculo);
 
             // Act
-            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object);
+            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.BuscarVeiculoPorPlacaPresenterMock.DeveTerApresentadoErro<IBuscarVeiculoPorPlacaPresenter, VeiculoAggregate>("Acesso negado. Somente administradores ou o proprietário do veículo podem visualizá-lo.", ErrorType.NotAllowed);
             _fixture.BuscarVeiculoPorPlacaPresenterMock.NaoDeveTerApresentadoSucesso<IBuscarVeiculoPorPlacaPresenter, VeiculoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information quando DomainException for lançada")]
+        [Trait("UseCase", "BuscarVeiculoPorPlaca")]
+        public async Task ExecutarAsync_DeveLogarInformation_QuandoDomainExceptionForLancada()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var placa = new Faker("pt_BR").Random.Replace("???-####");
+            var erroDominio = new Shared.Exceptions.DomainException("Erro de domínio", ErrorType.DomainRuleBroken);
+            var mockLogger = MockLogger.Criar();
+            
+            _fixture.VeiculoGatewayMock.AoObterPorPlaca(placa).LancaExcecao(erroDominio);
+
+            // Act
+            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error quando Exception genérica for lançada")]
+        [Trait("UseCase", "BuscarVeiculoPorPlaca")]
+        public async Task ExecutarAsync_DeveLogarError_QuandoExceptionGenericaForLancada()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var placa = new Faker("pt_BR").Random.Replace("???-####");
+            var mockLogger = MockLogger.Criar();
+            
+            _fixture.VeiculoGatewayMock.AoObterPorPlaca(placa).LancaExcecao(new Exception("Falha inesperada"));
+
+            // Act
+            await _fixture.BuscarVeiculoPorPlacaUseCase.ExecutarAsync(ator, placa, _fixture.VeiculoGatewayMock.Object, _fixture.BuscarVeiculoPorPlacaPresenterMock.Object, mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

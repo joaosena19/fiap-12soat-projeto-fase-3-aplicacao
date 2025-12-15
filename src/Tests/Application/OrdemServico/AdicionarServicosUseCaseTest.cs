@@ -43,7 +43,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             ordemServicoAtualizada.Should().NotBeNull();
@@ -82,7 +82,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("Ordem de serviço não encontrada.", ErrorType.ResourceNotFound);
@@ -109,7 +109,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>($"Serviço com ID {servicoId} não encontrado.", ErrorType.ReferenceNotFound);
@@ -132,7 +132,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds!,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("É necessário informar ao menos um serviço para adicionar na Ordem de Serviço", ErrorType.InvalidInput);
@@ -155,7 +155,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("É necessário informar ao menos um serviço para adicionar na Ordem de Serviço", ErrorType.InvalidInput);
@@ -185,7 +185,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("Este serviço já foi incluído nesta OS.", ErrorType.DomainRuleBroken);
@@ -213,7 +213,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("Erro interno do servidor.", ErrorType.UnexpectedError);
@@ -243,7 +243,7 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
             ordemServicoAtualizada.Should().NotBeNull();
@@ -274,11 +274,61 @@ namespace Tests.Application.OrdemServico
                 servicosIds,
                 _fixture.OrdemServicoGatewayMock.Object,
                 _fixture.ServicoExternalServiceMock.Object,
-                _fixture.AdicionarServicosPresenterMock.Object);
+                _fixture.AdicionarServicosPresenterMock.Object, MockLogger.CriarSimples());
 
             // Assert
-            _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("Acesso negado. Apenas administradores podem gerenciar ordens de serviço.", ErrorType.NotAllowed);
+            _fixture.AdicionarServicosPresenterMock.DeveTerApresentadoErro<IAdicionarServicosPresenter, OrdemServicoAggregate>("Acesso negado. Apenas administradores podem adicionar serviços.", ErrorType.NotAllowed);
             _fixture.AdicionarServicosPresenterMock.NaoDeveTerApresentadoSucesso<IAdicionarServicosPresenter, OrdemServicoAggregate>();
+        }
+
+        [Fact(DisplayName = "Deve logar information ao ocorrer DomainException")]
+        [Trait("UseCase", "AdicionarServicos")]
+        public async Task ExecutarAsync_DeveLogarInformation_AoOcorrerDomainException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoCliente(Guid.NewGuid()).Build();
+            var ordemServicoId = Guid.NewGuid();
+            var servicosIds = new List<Guid> { Guid.NewGuid() };
+            var mockLogger = MockLogger.Criar();
+
+            // Act
+            await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                servicosIds,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ServicoExternalServiceMock.Object,
+                _fixture.AdicionarServicosPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoInformation();
+        }
+
+        [Fact(DisplayName = "Deve logar error ao ocorrer Exception")]
+        [Trait("UseCase", "AdicionarServicos")]
+        public async Task ExecutarAsync_DeveLogarError_AoOcorrerException()
+        {
+            // Arrange
+            var ator = new AtorBuilder().ComoAdministrador().Build();
+            var ordemServicoId = Guid.NewGuid();
+            var servicosIds = new List<Guid> { Guid.NewGuid() };
+            var mockLogger = MockLogger.Criar();
+            
+            _fixture.OrdemServicoGatewayMock.AoObterPorId(ordemServicoId).LancaExcecao(new InvalidOperationException("Erro de banco de dados"));
+
+            // Act
+            await _fixture.AdicionarServicosUseCase.ExecutarAsync(
+                ator,
+                ordemServicoId,
+                servicosIds,
+                _fixture.OrdemServicoGatewayMock.Object,
+                _fixture.ServicoExternalServiceMock.Object,
+                _fixture.AdicionarServicosPresenterMock.Object,
+                mockLogger.Object);
+
+            // Assert
+            mockLogger.DeveTerLogadoErrorComException();
         }
     }
 }

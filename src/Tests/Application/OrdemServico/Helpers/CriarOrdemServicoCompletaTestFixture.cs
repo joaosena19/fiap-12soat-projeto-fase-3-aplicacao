@@ -1,6 +1,7 @@
 using Application.Contracts.Gateways;
 using Application.Contracts.Presenters;
 using Application.OrdemServico.UseCases;
+using Application.Contracts.Monitoramento;
 using Moq;
 
 namespace Tests.Application.OrdemServico.Helpers
@@ -13,6 +14,7 @@ namespace Tests.Application.OrdemServico.Helpers
         public Mock<IServicoGateway> ServicoGatewayMock { get; }
         public Mock<IItemEstoqueGateway> ItemEstoqueGatewayMock { get; }
         public Mock<ICriarOrdemServicoCompletaPresenter> PresenterMock { get; }
+        public Mock<IMetricsService> MetricsServiceMock { get; }
 
         public CriarOrdemServicoCompletaUseCase UseCase { get; }
 
@@ -24,6 +26,7 @@ namespace Tests.Application.OrdemServico.Helpers
             ServicoGatewayMock = new Mock<IServicoGateway>();
             ItemEstoqueGatewayMock = new Mock<IItemEstoqueGateway>();
             PresenterMock = new Mock<ICriarOrdemServicoCompletaPresenter>();
+            MetricsServiceMock = new Mock<IMetricsService>();
 
             UseCase = new CriarOrdemServicoCompletaUseCase();
         }
