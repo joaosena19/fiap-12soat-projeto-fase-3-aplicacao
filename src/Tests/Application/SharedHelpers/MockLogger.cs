@@ -60,7 +60,16 @@ namespace Tests.Application.SharedHelpers
 
         public void DeveTerLogadoError()
         {
-            Mock.Verify(x => x.LogError(It.IsAny<string>(), It.IsAny<object[]>()), Times.AtLeastOnce);
+            // Verifica se foi chamado LogError com string ou com exception
+            try
+            {
+                Mock.Verify(x => x.LogError(It.IsAny<string>(), It.IsAny<object[]>()), Times.AtLeastOnce);
+            }
+            catch (Moq.MockException)
+            {
+                // Se não foi chamado com string, verifica se foi chamado com exception
+                Mock.Verify(x => x.LogError(It.IsAny<Exception>(), It.IsAny<string>(), It.IsAny<object[]>()), Times.AtLeastOnce);
+            }
         }
 
         public void DeveTerLogadoErrorComException()

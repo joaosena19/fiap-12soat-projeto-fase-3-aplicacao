@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using Tests.Helpers;
+using Application.Contracts.Monitoramento;
 
 namespace Tests.Integration
 {
@@ -53,6 +54,9 @@ namespace Tests.Integration
                 {
                     services.Remove(descriptor);
                 }
+
+                // Configura mock do IMetricsService para testes
+                services.AddSingleton<IMetricsService, MockMetricsService>();
 
                 // Cria conexão com banco de dados em memória
                 services.AddDbContext<AppDbContext>(options =>
