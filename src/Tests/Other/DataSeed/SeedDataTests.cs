@@ -44,12 +44,13 @@ namespace Tests.Other.DataSeed
 
             // Assert
             var clientes = _context.Clientes.ToList();
-            clientes.Should().HaveCount(5);
+            clientes.Should().HaveCount(6);
             clientes.Should().Contain(c => c.Nome.Valor == "João Silva" && c.DocumentoIdentificador.Valor == "56229071010");
             clientes.Should().Contain(c => c.Nome.Valor == "Maria Santos" && c.DocumentoIdentificador.Valor == "99754534063");
             clientes.Should().Contain(c => c.Nome.Valor == "Pedro Oliveira" && c.DocumentoIdentificador.Valor == "13763122044");
             clientes.Should().Contain(c => c.Nome.Valor == "Transportadora Logística Express Ltda" && c.DocumentoIdentificador.Valor == "62255092000108");
             clientes.Should().Contain(c => c.Nome.Valor == "Auto Peças e Serviços São Paulo S.A." && c.DocumentoIdentificador.Valor == "13179173000160");
+            clientes.Should().Contain(c => c.Nome.Valor == "cliente" && c.DocumentoIdentificador.Valor == "19649323007");
         }
 
         [Fact(DisplayName = "Não deve popular clientes quando já existirem dados")]
@@ -345,11 +346,6 @@ namespace Tests.Other.DataSeed
             cliente.Should().NotBeNull();
             cliente!.Roles.Should().HaveCount(1);
             cliente.Roles.First().Id.Should().Be(RoleEnum.Cliente);
-
-            // Verificar se o cliente foi criado no aggregate Cliente
-            var clienteAggregate = _context.Clientes.FirstOrDefault(c => c.DocumentoIdentificador.Valor == "19649323007");
-            clienteAggregate.Should().NotBeNull();
-            clienteAggregate!.Nome.Valor.Should().Be("cliente");
         }
 
         [Fact(DisplayName = "Não deve popular usuários quando já existirem dados")]
@@ -388,7 +384,7 @@ namespace Tests.Other.DataSeed
 
             // Assert
             _context.Usuarios.Should().HaveCount(2);
-            _context.Clientes.Count().Should().BeGreaterThanOrEqualTo(5).And.BeLessThanOrEqualTo(6); // 5 iniciais, pode ter +1 do usuário se não conflitar
+            _context.Clientes.Count().Should().BeGreaterThanOrEqualTo(6);
             _context.Veiculos.Should().HaveCount(5);
             _context.Servicos.Should().HaveCount(8);
             _context.ItensEstoque.Should().HaveCount(13);

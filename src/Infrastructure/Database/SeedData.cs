@@ -28,7 +28,8 @@ namespace Infrastructure.Database
                 Cliente.Criar("Maria Santos", "99754534063"),
                 Cliente.Criar("Pedro Oliveira", "13763122044"),
                 Cliente.Criar("Transportadora Logística Express Ltda", "62255092000108"),
-                Cliente.Criar("Auto Peças e Serviços São Paulo S.A.", "13179173000160")
+                Cliente.Criar("Auto Peças e Serviços São Paulo S.A.", "13179173000160"),
+                Cliente.Criar("cliente", "19649323007") // Cliente com usuário
             };
 
             // 3. Salva os dados no banco
@@ -232,19 +233,6 @@ namespace Infrastructure.Database
             // 5. Salva os usuários no banco
             context.Usuarios.AddRange(usuariosDeTeste);
             context.SaveChanges();
-
-            // 6. Cria cliente para o usuário com role Cliente se não existir um com o documento
-            var usuarioCliente = usuariosDeTeste.FirstOrDefault(u => u.Roles.Any(r => r.Id == Domain.Identidade.Enums.RoleEnum.Cliente));
-            if (usuarioCliente != null)
-            {
-                var clienteExistente = context.Clientes.Any(c => c.DocumentoIdentificador.Valor == "19649323007");
-                if (!clienteExistente)
-                {
-                    var cliente = Cliente.Criar("cliente", "19649323007");
-                    context.Clientes.Add(cliente);
-                    context.SaveChanges();
-                }
-            }
         }
 
         public static void SeedAll(AppDbContext context)
