@@ -1,7 +1,7 @@
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 
-namespace API.Configurations
+namespace API.Configurations.Swagger
 {
     /// <summary>
     /// Configuração do Swagger/OpenAPI
@@ -59,6 +59,9 @@ namespace API.Configurations
                         Array.Empty<string>()
                     }
                 });
+
+                // Adiciona filtro personalizado para documentar endpoint de autenticação externa
+                c.DocumentFilter<ExternalAuthRouteFilter>();
             });
 
             return services;

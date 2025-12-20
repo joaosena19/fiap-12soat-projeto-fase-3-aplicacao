@@ -1,4 +1,5 @@
 using API.Configurations;
+using API.Configurations.Swagger;
 using API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
