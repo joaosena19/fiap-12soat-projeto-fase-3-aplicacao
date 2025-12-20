@@ -4,6 +4,10 @@ using Domain.Estoque.Aggregates;
 using Domain.Estoque.Enums;
 using Domain.OrdemServico.Aggregates.OrdemServico;
 using Domain.OrdemServico.Enums;
+using Domain.Identidade.Aggregates;
+using Infrastructure.Authentication.PasswordHashing;
+using Microsoft.Extensions.Options;
+using Shared.Options;
 
 namespace Infrastructure.Database
 {
@@ -181,8 +185,71 @@ namespace Infrastructure.Database
             context.SaveChanges();
         }
 
+        public static void SeedUsuarios(AppDbContext context)
+        {
+            // 1. Garante que o banco não será populado novamente
+            if (context.Usuarios.Any())
+                return;
+
+            // 2. Configura PasswordHasher com opções padrão
+            var options = new Argon2HashingOptions
+            {
+                SaltSize = 16,
+                HashSize = 32,
+                Iterations = 4,
+                MemorySize = 65536,
+                DegreeOfParallelism = 1
+            };
+            var passwordHasher = new PasswordHasher(Options.Create(options));
+
+            // 3. Busca ou cria as roles se elas não existirem (para testes unitários)
+            var roleAdmin = context.Roles.FirstOrDefault(r => r.Id == Domain.Identidade.Enums.RoleEnum.Administrador);
+            if (roleAdmin == null)
+            {
+                roleAdmin = Role.Administrador();
+                context.Roles.Add(roleAdmin);
+            }
+
+            var roleCliente = context.Roles.FirstOrDefault(r => r.Id == Domain.Identidade.Enums.RoleEnum.Cliente);
+            if (roleCliente == null)
+            {
+                roleCliente = Role.Cliente();
+                context.Roles.Add(roleCliente);
+            }
+
+            context.SaveChanges(); // Salva as roles primeiro se necessário
+
+            // 4. Cria usuários de teste
+            var usuariosDeTeste = new List<Usuario>
+            {
+                // Administrador
+                Usuario.Criar("82954150009", passwordHasher.Hash("admin123"), roleAdmin),
+                
+                // Cliente 
+                Usuario.Criar("19649323007", passwordHasher.Hash("cliente123"), roleCliente)
+            };
+
+            // 5. Salva os usuários no banco
+            context.Usuarios.AddRange(usuariosDeTeste);
+            context.SaveChanges();
+
+            // 6. Cria cliente para o usuário com role Cliente se não existir um com o documento
+            var usuarioCliente = usuariosDeTeste.FirstOrDefault(u => u.Roles.Any(r => r.Id == Domain.Identidade.Enums.RoleEnum.Cliente));
+            if (usuarioCliente != null)
+            {
+                var clienteExistente = context.Clientes.Any(c => c.DocumentoIdentificador.Valor == "19649323007");
+                if (!clienteExistente)
+                {
+                    var cliente = Cliente.Criar("cliente", "19649323007");
+                    context.Clientes.Add(cliente);
+                    context.SaveChanges();
+                }
+            }
+        }
+
         public static void SeedAll(AppDbContext context)
         {
+            SeedUsuarios(context);
             SeedClientes(context);
             SeedVeiculos(context);
             SeedServicos(context);

@@ -4,6 +4,8 @@ using Domain.Estoque.Aggregates;
 using Domain.Estoque.Enums;
 using Domain.OrdemServico.Aggregates.OrdemServico;
 using Domain.OrdemServico.Enums;
+using Domain.Identidade.Aggregates;
+using Domain.Identidade.Enums;
 using FluentAssertions;
 using Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
@@ -316,6 +318,57 @@ namespace Tests.Other.DataSeed
 
         #endregion
 
+        #region SeedUsuarios Tests
+
+        [Fact(DisplayName = "Deve popular usuários quando banco estiver vazio")]
+        [Trait("Método", "SeedUsuarios")]
+        public void SeedUsuarios_Deve_PopularUsuarios_Quando_BancoVazio()
+        {
+            // Arrange
+            _context.Usuarios.Should().BeEmpty();
+
+            // Act
+            SeedData.SeedUsuarios(_context);
+
+            // Assert
+            var usuarios = _context.Usuarios.Include(u => u.Roles).ToList();
+            usuarios.Should().HaveCount(2);
+
+            // Verificar administrador
+            var admin = usuarios.FirstOrDefault(u => u.DocumentoIdentificadorUsuario.Valor == "82954150009");
+            admin.Should().NotBeNull();
+            admin!.Roles.Should().HaveCount(1);
+            admin.Roles.First().Id.Should().Be(RoleEnum.Administrador);
+
+            // Verificar cliente
+            var cliente = usuarios.FirstOrDefault(u => u.DocumentoIdentificadorUsuario.Valor == "19649323007");
+            cliente.Should().NotBeNull();
+            cliente!.Roles.Should().HaveCount(1);
+            cliente.Roles.First().Id.Should().Be(RoleEnum.Cliente);
+
+            // Verificar se o cliente foi criado no aggregate Cliente
+            var clienteAggregate = _context.Clientes.FirstOrDefault(c => c.DocumentoIdentificador.Valor == "19649323007");
+            clienteAggregate.Should().NotBeNull();
+            clienteAggregate!.Nome.Valor.Should().Be("cliente");
+        }
+
+        [Fact(DisplayName = "Não deve popular usuários quando já existirem dados")]
+        [Trait("Método", "SeedUsuarios")]
+        public void SeedUsuarios_NaoDevePopular_Quando_JaExistiremDados()
+        {
+            // Arrange
+            SeedData.SeedUsuarios(_context);
+            var usuariosIniciais = _context.Usuarios.Count();
+
+            // Act
+            SeedData.SeedUsuarios(_context);
+
+            // Assert
+            _context.Usuarios.Should().HaveCount(usuariosIniciais);
+        }
+
+        #endregion
+
         #region SeedAll Tests
 
         [Fact(DisplayName = "Deve popular todos os dados quando banco estiver vazio")]
@@ -323,6 +376,7 @@ namespace Tests.Other.DataSeed
         public void SeedAll_Deve_PopularTodosDados_Quando_BancoVazio()
         {
             // Arrange
+            _context.Usuarios.Should().BeEmpty();
             _context.Clientes.Should().BeEmpty();
             _context.Veiculos.Should().BeEmpty();
             _context.Servicos.Should().BeEmpty();
@@ -333,7 +387,8 @@ namespace Tests.Other.DataSeed
             SeedData.SeedAll(_context);
 
             // Assert
-            _context.Clientes.Should().HaveCount(5);
+            _context.Usuarios.Should().HaveCount(2);
+            _context.Clientes.Count().Should().BeGreaterThanOrEqualTo(5).And.BeLessThanOrEqualTo(6); // 5 iniciais, pode ter +1 do usuário se não conflitar
             _context.Veiculos.Should().HaveCount(5);
             _context.Servicos.Should().HaveCount(8);
             _context.ItensEstoque.Should().HaveCount(13);
