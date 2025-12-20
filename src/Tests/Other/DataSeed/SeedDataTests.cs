@@ -4,6 +4,8 @@ using Domain.Estoque.Aggregates;
 using Domain.Estoque.Enums;
 using Domain.OrdemServico.Aggregates.OrdemServico;
 using Domain.OrdemServico.Enums;
+using Domain.Identidade.Aggregates;
+using Domain.Identidade.Enums;
 using FluentAssertions;
 using Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
@@ -42,12 +44,13 @@ namespace Tests.Other.DataSeed
 
             // Assert
             var clientes = _context.Clientes.ToList();
-            clientes.Should().HaveCount(5);
+            clientes.Should().HaveCount(6);
             clientes.Should().Contain(c => c.Nome.Valor == "João Silva" && c.DocumentoIdentificador.Valor == "56229071010");
             clientes.Should().Contain(c => c.Nome.Valor == "Maria Santos" && c.DocumentoIdentificador.Valor == "99754534063");
             clientes.Should().Contain(c => c.Nome.Valor == "Pedro Oliveira" && c.DocumentoIdentificador.Valor == "13763122044");
             clientes.Should().Contain(c => c.Nome.Valor == "Transportadora Logística Express Ltda" && c.DocumentoIdentificador.Valor == "62255092000108");
             clientes.Should().Contain(c => c.Nome.Valor == "Auto Peças e Serviços São Paulo S.A." && c.DocumentoIdentificador.Valor == "13179173000160");
+            clientes.Should().Contain(c => c.Nome.Valor == "cliente" && c.DocumentoIdentificador.Valor == "19649323007");
         }
 
         [Fact(DisplayName = "Não deve popular clientes quando já existirem dados")]
@@ -316,6 +319,52 @@ namespace Tests.Other.DataSeed
 
         #endregion
 
+        #region SeedUsuarios Tests
+
+        [Fact(DisplayName = "Deve popular usuários quando banco estiver vazio")]
+        [Trait("Método", "SeedUsuarios")]
+        public void SeedUsuarios_Deve_PopularUsuarios_Quando_BancoVazio()
+        {
+            // Arrange
+            _context.Usuarios.Should().BeEmpty();
+
+            // Act
+            SeedData.SeedUsuarios(_context);
+
+            // Assert
+            var usuarios = _context.Usuarios.Include(u => u.Roles).ToList();
+            usuarios.Should().HaveCount(2);
+
+            // Verificar administrador
+            var admin = usuarios.FirstOrDefault(u => u.DocumentoIdentificadorUsuario.Valor == "82954150009");
+            admin.Should().NotBeNull();
+            admin!.Roles.Should().HaveCount(1);
+            admin.Roles.First().Id.Should().Be(RoleEnum.Administrador);
+
+            // Verificar cliente
+            var cliente = usuarios.FirstOrDefault(u => u.DocumentoIdentificadorUsuario.Valor == "19649323007");
+            cliente.Should().NotBeNull();
+            cliente!.Roles.Should().HaveCount(1);
+            cliente.Roles.First().Id.Should().Be(RoleEnum.Cliente);
+        }
+
+        [Fact(DisplayName = "Não deve popular usuários quando já existirem dados")]
+        [Trait("Método", "SeedUsuarios")]
+        public void SeedUsuarios_NaoDevePopular_Quando_JaExistiremDados()
+        {
+            // Arrange
+            SeedData.SeedUsuarios(_context);
+            var usuariosIniciais = _context.Usuarios.Count();
+
+            // Act
+            SeedData.SeedUsuarios(_context);
+
+            // Assert
+            _context.Usuarios.Should().HaveCount(usuariosIniciais);
+        }
+
+        #endregion
+
         #region SeedAll Tests
 
         [Fact(DisplayName = "Deve popular todos os dados quando banco estiver vazio")]
@@ -323,6 +372,7 @@ namespace Tests.Other.DataSeed
         public void SeedAll_Deve_PopularTodosDados_Quando_BancoVazio()
         {
             // Arrange
+            _context.Usuarios.Should().BeEmpty();
             _context.Clientes.Should().BeEmpty();
             _context.Veiculos.Should().BeEmpty();
             _context.Servicos.Should().BeEmpty();
@@ -333,7 +383,8 @@ namespace Tests.Other.DataSeed
             SeedData.SeedAll(_context);
 
             // Assert
-            _context.Clientes.Should().HaveCount(5);
+            _context.Usuarios.Should().HaveCount(2);
+            _context.Clientes.Count().Should().BeGreaterThanOrEqualTo(6);
             _context.Veiculos.Should().HaveCount(5);
             _context.Servicos.Should().HaveCount(8);
             _context.ItensEstoque.Should().HaveCount(13);
