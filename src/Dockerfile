@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y wget tar
 # Baixar e instalar New Relic manualmente dentro da pasta /app
 # Isso garante que não teremos problemas de permissão de pasta
 RUN mkdir -p /app/newrelic && \
-    wget -O /tmp/newrelic-dotnet-agent.tar.gz https://download.newrelic.com/dot_net_agent/latest_release/newrelic-dotnet-agent_linux_x64.tar.gz && \
+    wget -O /tmp/newrelic-dotnet-agent.tar.gz https://download.newrelic.com/dot_net_agent/latest_release/newrelic-dotnet-agent_amd64.tar.gz && \
     tar -xf /tmp/newrelic-dotnet-agent.tar.gz -C /app/newrelic --strip-components=1 && \
     rm /tmp/newrelic-dotnet-agent.tar.gz
 
