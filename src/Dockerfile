@@ -24,30 +24,25 @@ RUN dotnet publish "API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 FROM base AS final
 WORKDIR /app
 
-# Instalar dependências básicas
+# Install the New Relic agent
 USER root
-RUN apt-get update && apt-get install -y wget tar
+RUN apt-get update && apt-get install -y wget ca-certificates gnupg \
+    && echo 'deb http://apt.newrelic.com/debian/ newrelic non-free' | tee /etc/apt/sources.list.d/newrelic.list \
+    && wget https://download.newrelic.com/548C16BF.gpg \
+    && apt-key add 548C16BF.gpg \
+    && apt-get update \
+    && apt-get install -y 'newrelic-dotnet-agent' \
+    && rm -rf /var/lib/apt/lists/*
 
-# Baixar e instalar New Relic manualmente dentro da pasta /app
-# Isso garante que não teremos problemas de permissão de pasta
-RUN mkdir -p /app/newrelic && \
-    wget -O /tmp/newrelic-dotnet-agent.tar.gz https://download.newrelic.com/dot_net_agent/latest_release/newrelic-dotnet-agent_amd64.tar.gz && \
-    tar -xf /tmp/newrelic-dotnet-agent.tar.gz -C /app/newrelic --strip-components=1 && \
-    rm /tmp/newrelic-dotnet-agent.tar.gz
-
-# Dar permissão total para o agente do newrelic
-RUN chmod -R 777 /app/newrelic
-
-# Variáveis de ambiente para o New Relic default (O Kubernetes pode sobrescrever)
+# Enable the New Relic agent
 ENV CORECLR_ENABLE_PROFILING=1 \
     CORECLR_PROFILER={36032161-FFC0-4B61-B559-F6C5D41BAE5A} \
-    CORECLR_PROFILER_PATH=/app/newrelic/libNewRelicProfiler.so \
-    NEW_RELIC_HOME=/app/newrelic
+    CORECLR_NEWRELIC_HOME=/usr/local/newrelic-dotnet-agent \
+    CORECLR_PROFILER_PATH=/usr/local/newrelic-dotnet-agent/libNewRelicProfiler.so \
+    NEW_RELIC_LICENSE_KEY=f4e4a891487991d21846e09f17ea78abFFFFNRAL \
+    NEW_RELIC_APP_NAME="Fiap.Fase3.Oficina.API"
 
 # Copia a aplicação
 COPY --from=build /app/publish .
-
-# Volta para o usuário padrão de segurança
-USER $APP_UID
 
 ENTRYPOINT ["dotnet", "API.dll"]
