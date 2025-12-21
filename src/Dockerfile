@@ -39,7 +39,6 @@ ENV CORECLR_ENABLE_PROFILING=1 \
     CORECLR_PROFILER={36032161-FFC0-4B61-B559-F6C5D41BAE5A} \
     CORECLR_NEWRELIC_HOME=/usr/local/newrelic-dotnet-agent \
     CORECLR_PROFILER_PATH=/usr/local/newrelic-dotnet-agent/libNewRelicProfiler.so \
-    NEW_RELIC_LICENSE_KEY=f4e4a891487991d21846e09f17ea78abFFFFNRAL \
     NEW_RELIC_APP_NAME="Fiap.Fase3.Oficina.API"
 
 # Copia a aplicação
