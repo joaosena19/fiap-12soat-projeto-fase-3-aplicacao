@@ -1,8 +1,23 @@
 using API.Configurations;
 using API.Configurations.Swagger;
 using API.Middleware;
+using Serilog;
+using NewRelic.LogEnrichers.Serilog;
+
+// Configurar Serilog com New Relic
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .AddEnvironmentVariables()
+        .Build())
+    .Enrich.WithNewRelicLogsInContext()
+    .WriteTo.Console()
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Usar Serilog como provedor de logs
+builder.Host.UseSerilog();
 
 builder.Services.AddApiControllers();
 builder.Services.AddSwaggerDocumentation();
