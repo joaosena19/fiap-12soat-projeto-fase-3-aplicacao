@@ -4,15 +4,14 @@ using API.Middleware;
 using Serilog;
 using NewRelic.LogEnrichers.Serilog;
 
-// Configurar Serilog com New Relic e propriedades contextuais
+// Configurar Serilog com New Relic
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
         .AddEnvironmentVariables()
         .Build())
-    .Enrich.FromLogContext()
     .Enrich.WithNewRelicLogsInContext()
-    .WriteTo.Console(outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j} {NewLine}{Exception}")
+    .WriteTo.Console()
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
