@@ -2,31 +2,30 @@ using API.Configurations;
 using API.Configurations.Swagger;
 using API.Middleware;
 using Serilog;
+using Serilog.Events;
 using NewRelic.LogEnrichers.Serilog;
+
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json")
+    .AddEnvironmentVariables()
+    .Build();
 
 // Configurar Serilog com New Relic
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(new ConfigurationBuilder()
-        .AddJsonFile("appsettings.json")
-        .AddEnvironmentVariables()
-        .Build())
+    .ReadFrom.Configuration(configuration)
+    .Enrich.FromLogContext()
     .Enrich.WithNewRelicLogsInContext()
     .WriteTo.Console()
+    .WriteTo.NewRelicLogs(
+        applicationName: "Fiap.Fase3.Oficina.API",
+        licenseKey: configuration["NEW_RELIC_LICENSE_KEY"]
+    )
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Usar Serilog como provedor de logs
 builder.Host.UseSerilog();
-builder.Logging.AddJsonConsole(options =>
-{
-    options.IncludeScopes = true; // ISSO É CRUCIAL para o ContextualLogger funcionar
-    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
-    options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions
-    {
-        Indented = false
-    };
-});
 
 builder.Services.AddApiControllers();
 builder.Services.AddSwaggerDocumentation();
