@@ -11,16 +11,23 @@ var configuration = new ConfigurationBuilder()
     .Build();
 
 // Configurar Serilog com New Relic
-Log.Logger = new LoggerConfiguration()
+var loggerConfig = new LoggerConfiguration()
     .ReadFrom.Configuration(configuration)
     .Enrich.FromLogContext()
     .Enrich.WithNewRelicLogsInContext()
-    .WriteTo.Console()
-    .WriteTo.NewRelicLogs(
+    .WriteTo.Console();
+
+var licenseKey = configuration["NEW_RELIC_LICENSE_KEY"];
+if (!string.IsNullOrWhiteSpace(licenseKey))
+{
+    loggerConfig.WriteTo.NewRelicLogs(
+        endpointUrl: "https://log-api.newrelic.com/log/v1",
         applicationName: "Fiap.Fase3.Oficina.API",
-        licenseKey: configuration["NEW_RELIC_LICENSE_KEY"]
-    )
-    .CreateLogger();
+        licenseKey: licenseKey
+    );
+}
+
+Log.Logger = loggerConfig.CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
