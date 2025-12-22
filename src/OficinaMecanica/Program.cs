@@ -4,21 +4,29 @@ using API.Middleware;
 using Serilog;
 using NewRelic.LogEnrichers.Serilog;
 
-// Configurar Serilog com New Relic e propriedades contextuais
+// Configurar Serilog com New Relic
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
         .AddEnvironmentVariables()
         .Build())
-    .Enrich.FromLogContext()
     .Enrich.WithNewRelicLogsInContext()
-    .WriteTo.Console(outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j} {NewLine}{Exception}")
+    .WriteTo.Console()
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Usar Serilog como provedor de logs
 builder.Host.UseSerilog();
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true; // ISSO É CRUCIAL para o ContextualLogger funcionar
+    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+    options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+    {
+        Indented = false
+    };
+});
 
 builder.Services.AddApiControllers();
 builder.Services.AddSwaggerDocumentation();
