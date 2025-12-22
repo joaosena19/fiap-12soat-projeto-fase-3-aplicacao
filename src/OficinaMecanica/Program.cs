@@ -18,6 +18,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Usar Serilog como provedor de logs
 builder.Host.UseSerilog();
+builder.Logging.AddJsonConsole(options =>
+{
+    options.IncludeScopes = true; // ISSO É CRUCIAL para o ContextualLogger funcionar
+    options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+    options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+    {
+        Indented = false
+    };
+});
 
 builder.Services.AddApiControllers();
 builder.Services.AddSwaggerDocumentation();
