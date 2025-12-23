@@ -15,8 +15,6 @@ namespace Application.Cadastros.UseCases
         {
             try
             {
-                throw new Exception("Teste de erro não tratado");
-
                 var cliente = await gateway.ObterPorDocumentoAsync(documento);
                 if (cliente == null)
                     throw new DomainException("Cliente não encontrado.", ErrorType.ResourceNotFound, "Cliente não encontrado para documento {Documento}", documento);

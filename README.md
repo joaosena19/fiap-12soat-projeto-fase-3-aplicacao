@@ -1,3 +1,5 @@
+[![Deploy](https://github.com/joaosena19/fiap-12soat-projeto-fase-3-aplicacao/actions/workflows/deploy.yaml/badge.svg)](https://github.com/joaosena19/fiap-12soat-projeto-fase-3-aplicacao/actions/workflows/deploy.yaml)
+
 # Identificação
 
 Aluno: João Pedro Sena Dainese  
