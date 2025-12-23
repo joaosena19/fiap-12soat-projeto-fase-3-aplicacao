@@ -1,5 +1,6 @@
 using Application.Contracts.Monitoramento;
 using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
 namespace Infrastructure.Monitoramento;
 
@@ -12,24 +13,36 @@ public class LoggerAdapter<T> : IAppLogger
         _logger = logger;
     }
 
-    public void LogInformation(string message, params object[] args)
+    public void LogInformation(string messageTemplate, params object[] args)
     {
-        _logger.LogInformation(message, args);
+        using (LogContext.PushProperty("message_template", messageTemplate))
+        {
+            _logger.LogInformation(messageTemplate, args);
+        }
     }
 
-    public void LogWarning(string message, params object[] args)
+    public void LogWarning(string messageTemplate, params object[] args)
     {
-        _logger.LogWarning(message, args);
+        using (LogContext.PushProperty("message_template", messageTemplate))
+        {
+            _logger.LogWarning(messageTemplate, args);
+        }
     }
 
-    public void LogError(string message, params object[] args)
+    public void LogError(string messageTemplate, params object[] args)
     {
-        _logger.LogError(message, args);
+        using (LogContext.PushProperty("message_template", messageTemplate))
+        {
+            _logger.LogError(messageTemplate, args);
+        }
     }
 
-    public void LogError(Exception ex, string message, params object[] args)
+    public void LogError(Exception ex, string messageTemplate, params object[] args)
     {
-        _logger.LogError(ex, message, args);
+        using (LogContext.PushProperty("message_template", messageTemplate))
+        {
+            _logger.LogError(ex, messageTemplate, args);
+        }
     }
 
     public IAppLogger ComPropriedade(string key, object? value)
