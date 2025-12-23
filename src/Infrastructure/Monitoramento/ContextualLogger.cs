@@ -15,9 +15,13 @@ public class ContextualLogger : IAppLogger
         _context = context;
     }
 
-    private void LogWithContext(Action logAction)
+    private void LogWithContext(string messageTemplate, Action logAction)
     {
         var disposables = new List<IDisposable>();
+        
+        // Adiciona o template da mensagem como propriedade
+        disposables.Add(LogContext.PushProperty("message_template", messageTemplate));
+
         foreach (var kvp in _context)
         {
             if (kvp.Value != null)
@@ -39,24 +43,24 @@ public class ContextualLogger : IAppLogger
         }
     }
 
-    public void LogInformation(string message, params object[] args)
+    public void LogInformation(string messageTemplate, params object[] args)
     {
-        LogWithContext(() => _logger.LogInformation(message, args));
+        LogWithContext(messageTemplate, () => _logger.LogInformation(messageTemplate, args));
     }
 
-    public void LogWarning(string message, params object[] args)
+    public void LogWarning(string messageTemplate, params object[] args)
     {
-        LogWithContext(() => _logger.LogWarning(message, args));
+        LogWithContext(messageTemplate, () => _logger.LogWarning(messageTemplate, args));
     }
 
-    public void LogError(string message, params object[] args)
+    public void LogError(string messageTemplate, params object[] args)
     {
-        LogWithContext(() => _logger.LogError(message, args));
+        LogWithContext(messageTemplate, () => _logger.LogError(messageTemplate, args));
     }
 
-    public void LogError(Exception ex, string message, params object[] args)
+    public void LogError(Exception ex, string messageTemplate, params object[] args)
     {
-        LogWithContext(() => _logger.LogError(ex, message, args));
+        LogWithContext(messageTemplate, () => _logger.LogError(ex, messageTemplate, args));
     }
 
     public IAppLogger ComPropriedade(string key, object? value)
